@@ -8,7 +8,7 @@ type UserServiceValidate struct {
 
 type Ticket struct {
 	ID        int64     `json:"id"`
-	Capacity  int64     `json:"capacity"`
+	Stock     int64     `json:"stock"`
 	Region    string    `json:"region"`
 	Level     string    `json:"level"`
 	EventDate time.Time `json:"event_date"`

@@ -31,7 +31,7 @@ func (u *usecases) ShowTickets(ctx context.Context, page int, pageSize int) (r [
 	var resp []response.Ticket
 
 	// get data from database
-	tickets, totalItem, totalPage, err := u.repo.FindTickets(ctx, page, pageSize)
+	tickets, _, _, err := u.repo.FindTickets(ctx, page, pageSize)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -46,9 +46,9 @@ func (u *usecases) ShowTickets(ctx context.Context, page int, pageSize int) (r [
 			if ticket.ID == td.TicketID {
 				resp = append(resp, response.Ticket{
 					ID:        ticket.ID,
-					Capacity:  ticket.Capacity,
+					Stock:     td.Stock,
 					Region:    ticket.Region,
-					Level:     ticket.Level,
+					Level:     td.Level,
 					EventDate: ticket.EventDate,
 					Price:     td.BasePrice,
 				})
