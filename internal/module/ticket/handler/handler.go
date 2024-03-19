@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"ticket-service/internal/module/ticket/models/request"
 	"ticket-service/internal/module/ticket/usecases"
+	"ticket-service/internal/pkg/errors"
 	"ticket-service/internal/pkg/helpers"
 	"ticket-service/internal/pkg/log"
 
@@ -16,12 +18,31 @@ type TicketHandler struct {
 }
 
 func (h *TicketHandler) ShowTickets(c *fiber.Ctx) error {
+	var req request.Pagination
+	if err := c.QueryParser(&req); err != nil {
+		return helpers.RespError(c, h.Log, errors.BadRequest("Bad Request, Invalid Query Params"))
+	}
+
+	// validate request
+	if err := h.Validator.Struct(req); err != nil {
+		return helpers.RespError(c, h.Log, errors.BadRequest(err.Error()))
+	}
+
 	// call usecase
-	tickets, err := h.Usecase.ShowTickets(c.Context())
+	tickets, totalItem, totalPage, err := h.Usecase.ShowTickets(c.Context(), req.Page, req.Size)
 	if err != nil {
 		return helpers.RespError(c, h.Log, err)
 	}
 
+	meta := helpers.MetaPaginationResponse{
+		Code:      200,
+		Message:   "Show Tickets Success",
+		Page:      req.Page,
+		Size:      req.Size,
+		TotalPage: totalPage,
+		TotalData: totalItem,
+	}
+
 	// response
-	return helpers.RespSuccess(c, h.Log, tickets, "Success")
+	return helpers.RespPagination(c, h.Log, tickets, meta, "Show Tickets Success")
 }
