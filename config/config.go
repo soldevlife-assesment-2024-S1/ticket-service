@@ -8,10 +8,25 @@ import (
 )
 
 type Config struct {
-	Redis         RedisConfig
-	HttpServer    HttpServerConfig
-	HttpClient    HttpClientConfig
-	Logger        LoggerConfig
+	Redis       RedisConfig
+	HttpServer  HttpServerConfig
+	HttpClient  HttpClientConfig
+	Logger      LoggerConfig
+	UserService UserService
+	Database    DatabaseConfig
+}
+
+type DatabaseConfig struct {
+	Host         string `envconfig:"database_host"`
+	Port         int    `envconfig:"database_port"`
+	Username     string `envconfig:"database_username"`
+	Password     string `envconfig:"database_password"`
+	DBName       string `envconfig:"database_db_name"`
+	SSL          string `envconfig:"database_ssl"`
+	SchemaName   string `envconfig:"database_schema_name"`
+	MaxIdleConns int    `envconfig:"database_max_idle_conns"`
+	MaxOpenConns int    `envconfig:"database_max_open_conns"`
+	Timeout      int    `envconfig:"database_timeout"`
 }
 
 type RedisConfig struct {
@@ -38,6 +53,11 @@ type HttpClientConfig struct {
 	ErrorRate           float64 `envconfig:"http_client_error_rate"` // 0.001 - 0.999
 	Threshold           int     `envconfig:"http_client_threshold"`
 	Type                string  `envconfig:"http_client_type"` // consecutive, error_rate
+}
+
+type UserService struct {
+	Host string `envconfig:"user_service_host"`
+	Port string `envconfig:"user_service_port"`
 }
 
 type HttpServerConfig struct {
