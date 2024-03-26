@@ -10,9 +10,28 @@ type usecases struct {
 	repo repositories.Repositories
 }
 
+// InquiryTicketAmount implements Usecases.
+func (u *usecases) InquiryTicketAmount(ctx context.Context, ticketID int64, totalTicket int) (resp response.InquiryTicketAmount, err error) {
+	// get ticket details
+	ticketDetails, err := u.repo.FindTicketDetail(ctx, ticketID)
+	if err != nil {
+		return response.InquiryTicketAmount{}, err
+	}
+
+	// calculate total amount
+	totalAmount := ticketDetails.BasePrice * float64(totalTicket)
+
+	return response.InquiryTicketAmount{
+		TotalTicket: totalTicket,
+		TotalAmount: totalAmount,
+	}, nil
+}
+
 type Usecases interface {
 	// public
 	ShowTickets(ctx context.Context, page int, pageSize int) (resp []response.Ticket, totalData int, totalPage int, err error)
+	// private
+	InquiryTicketAmount(ctx context.Context, ticketID int64, totalTicket int) (resp response.InquiryTicketAmount, err error)
 }
 
 func New(repo repositories.Repositories) Usecases {

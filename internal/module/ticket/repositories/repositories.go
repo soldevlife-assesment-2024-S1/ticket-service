@@ -23,6 +23,18 @@ type repositories struct {
 	redisClient    *redis.Client
 }
 
+// FindTicketDetail implements Repositories.
+func (r *repositories) FindTicketDetail(ctx context.Context, ticketID int64) (entity.TicketDetail, error) {
+	query := "SELECT * FROM ticket_details WHERE ticket_id = ?"
+	var ticketDetail entity.TicketDetail
+	if err := r.db.GetContext(ctx, &ticketDetail, query, ticketID); err != nil {
+		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
+		return entity.TicketDetail{}, err
+	}
+
+	return ticketDetail, nil
+}
+
 type Repositories interface {
 	// http
 	ValidateToken(ctx context.Context, token string) (bool, error)
@@ -31,6 +43,7 @@ type Repositories interface {
 	SetTicketRedis(ctx context.Context, tickets []response.Ticket) error
 	FindTickets(ctx context.Context, page int, pageSize int) (tickets []entity.Ticket, totalCount int, totalPage int, err error)
 	FindTicketDetails(ctx context.Context, page int, pageSize int) (ticketDetails []entity.TicketDetail, totalCount int, totalPage int, err error)
+	FindTicketDetail(ctx context.Context, ticketID int64) (entity.TicketDetail, error)
 }
 
 func New(db *sqlx.DB, log log.Logger, httpClient *circuit.HTTPClient, redisClient *redis.Client) Repositories {

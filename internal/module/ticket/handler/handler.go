@@ -46,3 +46,27 @@ func (h *TicketHandler) ShowTickets(c *fiber.Ctx) error {
 	// response
 	return helpers.RespPagination(c, h.Log, tickets, meta, "Show Tickets Success")
 }
+
+// private
+
+func (h *TicketHandler) InquiryTicketAmount(c *fiber.Ctx) error {
+	var req request.InquiryTicketAmount
+
+	if err := c.QueryParser(&req); err != nil {
+		return helpers.RespError(c, h.Log, errors.BadRequest("Bad Request, Invalid Query Params"))
+	}
+
+	// validate request
+	if err := h.Validator.Struct(req); err != nil {
+		return helpers.RespError(c, h.Log, errors.BadRequest(err.Error()))
+	}
+
+	// call usecase
+	amount, err := h.Usecase.InquiryTicketAmount(c.Context(), req.TicketID, req.TotalTicket)
+	if err != nil {
+		return helpers.RespError(c, h.Log, err)
+	}
+
+	// response
+	return helpers.RespSuccess(c, h.Log, amount, "Inquiry Ticket Amount Success")
+}
