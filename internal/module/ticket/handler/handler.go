@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"strconv"
 	"ticket-service/internal/module/ticket/models/request"
 	"ticket-service/internal/module/ticket/usecases"
@@ -8,7 +9,10 @@ import (
 	"ticket-service/internal/pkg/helpers"
 	"ticket-service/internal/pkg/log"
 
+	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/go-playground/validator/v10"
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -16,6 +20,7 @@ type TicketHandler struct {
 	Log       log.Logger
 	Validator *validator.Validate
 	Usecase   usecases.Usecases
+	Publish   message.Publisher
 }
 
 func (h *TicketHandler) ShowTickets(c *fiber.Ctx) error {
@@ -94,6 +99,97 @@ func (h *TicketHandler) CheckStockTicket(c *fiber.Ctx) error {
 	return helpers.RespSuccess(c, h.Log, amount, "Check Stock Ticket Success")
 }
 
+// TODO: Handler Decrement Ticket Stock
+
+func (h *TicketHandler) DecrementTicketStock(msg *message.Message) error {
+	msg.Ack()
+	req := request.DecrementTicketStock{}
+
+	if err := json.Unmarshal(msg.Payload, &req); err != nil {
+		h.Log.Error(msg.Context(), "Failed to unmarshal data", err)
+
+		// publish to poison queue
+		reqPoisoned := request.PoisonedQueue{
+			TopicTarget: "decrement_stock_ticket",
+			ErrorMsg:    err.Error(),
+			Payload:     msg.Payload,
+		}
+
+		jsonPayload, _ := json.Marshal(reqPoisoned)
+
+		h.Publish.Publish("poisoned_queue", message.NewMessage(watermill.NewUUID(), jsonPayload))
+
+		return err
+	}
+
+	ctx := context.Background()
+
+	// call usecase
+	err := h.Usecase.DecrementTicketStock(ctx, req.TicketDetailID, req.TotalTicket)
+
+	if err != nil {
+		h.Log.Error(msg.Context(), "Failed to decrement ticket stock", err)
+
+		// publish to poison queue
+		reqPoisoned := request.PoisonedQueue{
+			TopicTarget: "decrement_stock_ticket",
+			ErrorMsg:    err.Error(),
+			Payload:     msg.Payload,
+		}
+
+		jsonPayload, _ := json.Marshal(reqPoisoned)
+
+		h.Publish.Publish("poisoned_queue", message.NewMessage(watermill.NewUUID(), jsonPayload))
+
+		return err
+	}
+
+	return nil
+}
+
 // TODO: Handler Increment Ticket Stock
 
-// TODO: Handler Decrement Ticket Stock
+func (h *TicketHandler) IncrementTicketStock(msg *message.Message) error {
+	msg.Ack()
+	req := request.IncrementTicketStock{}
+
+	if err := json.Unmarshal(msg.Payload, &req); err != nil {
+		h.Log.Error(msg.Context(), "Failed to unmarshal data", err)
+
+		// publish to poison queue
+		reqPoisoned := request.PoisonedQueue{
+			TopicTarget: "increment_stock_ticket",
+			ErrorMsg:    err.Error(),
+			Payload:     msg.Payload,
+		}
+
+		jsonPayload, _ := json.Marshal(reqPoisoned)
+
+		h.Publish.Publish("poisoned_queue", message.NewMessage(watermill.NewUUID(), jsonPayload))
+
+		return err
+	}
+	ctx := context.Background()
+
+	// call usecase
+	err := h.Usecase.IncrementTicketStock(ctx, req.TicketDetailID, req.TotalTicket)
+
+	if err != nil {
+		h.Log.Error(msg.Context(), "Failed to increment ticket stock", err)
+
+		// publish to poison queue
+		reqPoisoned := request.PoisonedQueue{
+			TopicTarget: "increment_stock_ticket",
+			ErrorMsg:    err.Error(),
+			Payload:     msg.Payload,
+		}
+
+		jsonPayload, _ := json.Marshal(reqPoisoned)
+
+		h.Publish.Publish("poisoned_queue", message.NewMessage(watermill.NewUUID(), jsonPayload))
+
+		return err
+	}
+
+	return nil
+}

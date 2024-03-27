@@ -2,12 +2,62 @@ package usecases
 
 import (
 	"context"
+	"fmt"
 	"ticket-service/internal/module/ticket/models/response"
 	"ticket-service/internal/module/ticket/repositories"
+	"ticket-service/internal/pkg/errors"
 )
 
 type usecases struct {
 	repo repositories.Repositories
+}
+
+// DecrementTicketStock implements Usecases.
+func (u *usecases) DecrementTicketStock(ctx context.Context, ticketDetailID int64, totalTicket int64) error {
+
+	// get ticket detail
+	ticketDetail, err := u.repo.FindTicketDetail(ctx, ticketDetailID)
+	if err != nil {
+		return err
+	}
+
+	// check stock
+	if ticketDetail.Stock < totalTicket {
+		return errors.BadRequest("stock not enough")
+	}
+
+	// decrement stock
+	ticketDetail.Stock -= totalTicket
+
+	fmt.Println("stock", ticketDetail.Stock)
+
+	// update stock
+	err = u.repo.UpdateTicketDetail(ctx, ticketDetail)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// IncrementTicketStock implements Usecases.
+func (u *usecases) IncrementTicketStock(ctx context.Context, ticketDetailID int64, totalTicket int64) error {
+	// get ticket detail
+	ticketDetail, err := u.repo.FindTicketDetail(ctx, ticketDetailID)
+	if err != nil {
+		return err
+	}
+
+	// increment stock
+	ticketDetail.Stock += totalTicket
+
+	// update stock
+	err = u.repo.UpdateTicketDetail(ctx, ticketDetail)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // CheckStockTicket implements Usecases.
@@ -56,6 +106,8 @@ type Usecases interface {
 	// private
 	InquiryTicketAmount(ctx context.Context, ticketID int64, totalTicket int) (resp response.InquiryTicketAmount, err error)
 	CheckStockTicket(ctx context.Context, ticketDetailID int) (resp response.StockTicket, err error)
+	DecrementTicketStock(ctx context.Context, ticketDetailID int64, totalTicket int64) error
+	IncrementTicketStock(ctx context.Context, ticketDetailID int64, totalTicket int64) error
 }
 
 func New(repo repositories.Repositories) Usecases {

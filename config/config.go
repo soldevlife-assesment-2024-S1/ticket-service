@@ -8,12 +8,24 @@ import (
 )
 
 type Config struct {
-	Redis       RedisConfig
-	HttpServer  HttpServerConfig
-	HttpClient  HttpClientConfig
-	Logger      LoggerConfig
-	UserService UserService
-	Database    DatabaseConfig
+	Redis         RedisConfig
+	HttpServer    HttpServerConfig
+	HttpClient    HttpClientConfig
+	Logger        LoggerConfig
+	UserService   UserService
+	Database      DatabaseConfig
+	MessageStream MessageStreamConfig
+}
+
+type MessageStreamConfig struct {
+	Host           string `envconfig:"message_stream_host"`
+	Port           string `envconfig:"message_stream_port"`
+	Username       string `envconfig:"message_stream_username"`
+	Password       string `envconfig:"message_stream_password"`
+	ExchangeName   string `envconfig:"message_stream_exchange_name"`
+	PublishTopic   string `envconfig:"message_stream_publish_topic"`
+	SubscribeTopic string `envconfig:"message_stream_subscribe_topic"`
+	SSL            bool   `envconfig:"message_stream_ssl"`
 }
 
 type DatabaseConfig struct {

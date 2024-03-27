@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"ticket-service/config"
 	"ticket-service/internal/module/ticket/models/entity"
@@ -23,6 +24,44 @@ type repositories struct {
 	redisClient    *redis.Client
 }
 
+// UpsertTicketDetail implements Repositories.
+func (r *repositories) UpdateTicketDetail(ctx context.Context, ticketDetail entity.TicketDetail) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return errors.InternalServerError("error starting transaction")
+	}
+
+	// Lock the rows for update
+	query := `SELECT * FROM ticket_details WHERE id = $1 FOR UPDATE`
+	var existingTicketDetail entity.TicketDetail
+	err = r.db.GetContext(ctx, &existingTicketDetail, query, ticketDetail.ID)
+	if err != nil && err != sql.ErrNoRows {
+		tx.Rollback()
+		return errors.InternalServerError("error locking rows")
+	}
+
+	var ID string
+	// Update existing ticket detail
+	queryUpdate := fmt.Sprintf(`
+		UPDATE ticket_details
+		SET stock = %d, updated_at = NOW()
+		WHERE id = %d
+		RETURNING id
+	`, ticketDetail.Stock, ticketDetail.ID)
+	err = tx.QueryRowContext(ctx, queryUpdate).Scan(&ID)
+	if err != nil {
+		tx.Rollback()
+		return errors.InternalServerError("error upserting booking")
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return errors.InternalServerError("error committing transaction")
+	}
+
+	return nil
+}
+
 // FindTicketDetail implements Repositories.
 func (r *repositories) FindTicketDetail(ctx context.Context, ticketID int64) (entity.TicketDetail, error) {
 	query := fmt.Sprintf("SELECT * FROM ticket_details WHERE id = %d", ticketID)
@@ -41,9 +80,11 @@ type Repositories interface {
 	// redis
 	GetTicketRedis(ctx context.Context) ([]response.Ticket, error)
 	SetTicketRedis(ctx context.Context, tickets []response.Ticket) error
+	// db
 	FindTickets(ctx context.Context, page int, pageSize int) (tickets []entity.Ticket, totalCount int, totalPage int, err error)
 	FindTicketDetails(ctx context.Context, page int, pageSize int) (ticketDetails []entity.TicketDetail, totalCount int, totalPage int, err error)
 	FindTicketDetail(ctx context.Context, ticketID int64) (entity.TicketDetail, error)
+	UpdateTicketDetail(ctx context.Context, ticketDetail entity.TicketDetail) error
 }
 
 func New(db *sqlx.DB, log log.Logger, httpClient *circuit.HTTPClient, redisClient *redis.Client) Repositories {
