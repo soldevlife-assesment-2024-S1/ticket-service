@@ -40,18 +40,12 @@ func (r *repositories) UpdateTicketDetail(ctx context.Context, ticketDetail enti
 		return errors.InternalServerError("error locking rows")
 	}
 
-	var ID string
 	// Update existing ticket detail
-	queryUpdate := fmt.Sprintf(`
-		UPDATE ticket_details
-		SET stock = %d, updated_at = NOW()
-		WHERE id = %d
-		RETURNING id
-	`, ticketDetail.Stock, ticketDetail.ID)
-	err = tx.QueryRowContext(ctx, queryUpdate).Scan(&ID)
+	queryUpdate := `UPDATE ticket_details SET stock = $1, updated_at = NOW() WHERE id = $2`
+	_, err = tx.ExecContext(ctx, queryUpdate, ticketDetail.Stock, ticketDetail.ID)
 	if err != nil {
 		tx.Rollback()
-		return errors.InternalServerError("error upserting booking")
+		return errors.InternalServerError("error upserting ticket detail")
 	}
 
 	err = tx.Commit()

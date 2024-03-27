@@ -125,7 +125,7 @@ func (h *TicketHandler) DecrementTicketStock(msg *message.Message) error {
 	ctx := context.Background()
 
 	// call usecase
-	err := h.Usecase.DecrementTicketStock(ctx, req.TicketDetailID, req.TotalTicket)
+	err := h.Usecase.DecrementTicketStock(ctx, req.TicketDetailID, req.TotalTickets)
 
 	if err != nil {
 		h.Log.Error(msg.Context(), "Failed to decrement ticket stock", err)
@@ -172,7 +172,7 @@ func (h *TicketHandler) IncrementTicketStock(msg *message.Message) error {
 	ctx := context.Background()
 
 	// call usecase
-	err := h.Usecase.IncrementTicketStock(ctx, req.TicketDetailID, req.TotalTicket)
+	err := h.Usecase.IncrementTicketStock(ctx, req.TicketDetailID, req.TotalTickets)
 
 	if err != nil {
 		h.Log.Error(msg.Context(), "Failed to increment ticket stock", err)

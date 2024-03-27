@@ -16,12 +16,12 @@ type CheckStockTicket struct {
 
 type DecrementTicketStock struct {
 	TicketDetailID int64 `json:"ticket_detail_id" form:"ticket_detail_id" validate:"required"`
-	TotalTicket    int64 `json:"total_ticket" form:"total_ticket" validate:"required"`
+	TotalTickets   int64 `json:"total_tickets" form:"total_tickets" validate:"required"`
 }
 
 type IncrementTicketStock struct {
 	TicketDetailID int64 `json:"ticket_detail_id" form:"ticket_detail_id" validate:"required"`
-	TotalTicket    int64 `json:"total_ticket" form:"total_ticket" validate:"required"`
+	TotalTickets   int64 `json:"total_tickets" form:"total_tickets" validate:"required"`
 }
 
 type PoisonedQueue struct {
