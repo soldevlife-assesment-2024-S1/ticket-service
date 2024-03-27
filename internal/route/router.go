@@ -21,7 +21,8 @@ func Initialize(app *fiber.App, handlerTicket *handler.TicketHandler, m *middlew
 	v1.Get("/tickets", handlerTicket.ShowTickets)
 
 	private := Api.Group("/private")
-	private.Get("/tickets/inquiry", handlerTicket.InquiryTicketAmount)
+	private.Get("/ticket/inquiry", handlerTicket.InquiryTicketAmount)
+	private.Get("/ticket/stock", handlerTicket.CheckStockTicket)
 
 	return app
 

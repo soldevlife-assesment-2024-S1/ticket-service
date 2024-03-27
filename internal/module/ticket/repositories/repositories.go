@@ -25,9 +25,9 @@ type repositories struct {
 
 // FindTicketDetail implements Repositories.
 func (r *repositories) FindTicketDetail(ctx context.Context, ticketID int64) (entity.TicketDetail, error) {
-	query := "SELECT * FROM ticket_details WHERE ticket_id = ?"
+	query := fmt.Sprintf("SELECT * FROM ticket_details WHERE id = %d", ticketID)
 	var ticketDetail entity.TicketDetail
-	if err := r.db.GetContext(ctx, &ticketDetail, query, ticketID); err != nil {
+	if err := r.db.GetContext(ctx, &ticketDetail, query); err != nil {
 		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
 		return entity.TicketDetail{}, err
 	}

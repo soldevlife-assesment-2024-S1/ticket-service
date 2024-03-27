@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"strconv"
 	"ticket-service/internal/module/ticket/models/request"
 	"ticket-service/internal/module/ticket/usecases"
 	"ticket-service/internal/pkg/errors"
@@ -50,23 +51,45 @@ func (h *TicketHandler) ShowTickets(c *fiber.Ctx) error {
 // private
 
 func (h *TicketHandler) InquiryTicketAmount(c *fiber.Ctx) error {
-	var req request.InquiryTicketAmount
+	ticketDetailID := c.Query("ticket_detail_id")
+	totalTicket := c.Query("total_ticket")
 
-	if err := c.QueryParser(&req); err != nil {
-		return helpers.RespError(c, h.Log, errors.BadRequest("Bad Request, Invalid Query Params"))
+	intTicketDetailID, err := strconv.Atoi(ticketDetailID)
+	if err != nil {
+		return helpers.RespError(c, h.Log, errors.BadRequest("Invalid Ticket Detail ID"))
 	}
 
-	// validate request
-	if err := h.Validator.Struct(req); err != nil {
-		return helpers.RespError(c, h.Log, errors.BadRequest(err.Error()))
-	}
+	int64TicketDetailID := int64(intTicketDetailID)
 
+	intTotalTicket, err := strconv.Atoi(totalTicket)
+	if err != nil {
+		return helpers.RespError(c, h.Log, errors.BadRequest("Invalid Total Ticket"))
+	}
 	// call usecase
-	amount, err := h.Usecase.InquiryTicketAmount(c.Context(), req.TicketID, req.TotalTicket)
+	amount, err := h.Usecase.InquiryTicketAmount(c.Context(), int64TicketDetailID, intTotalTicket)
 	if err != nil {
 		return helpers.RespError(c, h.Log, err)
 	}
 
 	// response
 	return helpers.RespSuccess(c, h.Log, amount, "Inquiry Ticket Amount Success")
+}
+
+func (h *TicketHandler) CheckStockTicket(c *fiber.Ctx) error {
+
+	ticketDetailID := c.Query("ticket_detail_id")
+
+	intTicketDetailID, err := strconv.Atoi(ticketDetailID)
+	if err != nil {
+		return helpers.RespError(c, h.Log, errors.BadRequest("Invalid Ticket Detail ID"))
+	}
+
+	// call usecase
+	amount, err := h.Usecase.CheckStockTicket(c.Context(), intTicketDetailID)
+	if err != nil {
+		return helpers.RespError(c, h.Log, err)
+	}
+
+	// response
+	return helpers.RespSuccess(c, h.Log, amount, "Check Stock Ticket Success")
 }

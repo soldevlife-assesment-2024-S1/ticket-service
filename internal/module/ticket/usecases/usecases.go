@@ -10,6 +10,29 @@ type usecases struct {
 	repo repositories.Repositories
 }
 
+// CheckStockTicket implements Usecases.
+func (u *usecases) CheckStockTicket(ctx context.Context, ticketDetailID int) (resp response.StockTicket, err error) {
+	// get ticket detail
+	ticketDetailID64 := int64(ticketDetailID)
+	ticketDetail, err := u.repo.FindTicketDetail(ctx, ticketDetailID64)
+	if err != nil {
+		return response.StockTicket{}, err
+	}
+
+	// check stock
+	if ticketDetail.Stock == 0 {
+		return response.StockTicket{
+			Stock: 0,
+		}, nil
+	}
+
+	resp = response.StockTicket{
+		Stock: ticketDetail.Stock,
+	}
+
+	return resp, nil
+}
+
 // InquiryTicketAmount implements Usecases.
 func (u *usecases) InquiryTicketAmount(ctx context.Context, ticketID int64, totalTicket int) (resp response.InquiryTicketAmount, err error) {
 	// get ticket details
@@ -32,6 +55,7 @@ type Usecases interface {
 	ShowTickets(ctx context.Context, page int, pageSize int) (resp []response.Ticket, totalData int, totalPage int, err error)
 	// private
 	InquiryTicketAmount(ctx context.Context, ticketID int64, totalTicket int) (resp response.InquiryTicketAmount, err error)
+	CheckStockTicket(ctx context.Context, ticketDetailID int) (resp response.StockTicket, err error)
 }
 
 func New(repo repositories.Repositories) Usecases {

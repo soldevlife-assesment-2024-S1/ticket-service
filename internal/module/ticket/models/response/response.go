@@ -19,3 +19,7 @@ type InquiryTicketAmount struct {
 	TotalTicket int     `json:"total_ticket"`
 	TotalAmount float64 `json:"total_amount"`
 }
+
+type StockTicket struct {
+	Stock int64 `json:"stock"`
+}
