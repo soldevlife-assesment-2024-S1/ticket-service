@@ -93,3 +93,7 @@ func (h *TicketHandler) CheckStockTicket(c *fiber.Ctx) error {
 	// response
 	return helpers.RespSuccess(c, h.Log, amount, "Check Stock Ticket Success")
 }
+
+// TODO: Handler Increment Ticket Stock
+
+// TODO: Handler Decrement Ticket Stock
