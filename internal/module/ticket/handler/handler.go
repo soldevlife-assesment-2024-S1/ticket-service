@@ -147,8 +147,6 @@ func (h *TicketHandler) DecrementTicketStock(msg *message.Message) error {
 	return nil
 }
 
-// TODO: Handler Increment Ticket Stock
-
 func (h *TicketHandler) IncrementTicketStock(msg *message.Message) error {
 	msg.Ack()
 	req := request.IncrementTicketStock{}
@@ -192,4 +190,18 @@ func (h *TicketHandler) IncrementTicketStock(msg *message.Message) error {
 	}
 
 	return nil
+}
+
+func (h *TicketHandler) GetTicketByRegionName(c *fiber.Ctx) error {
+	regionName := c.Query("region_name")
+
+	// call usecase
+	tickets, err := h.Usecase.GetTicketByRegionName(c.Context(), regionName)
+	if err != nil {
+		return helpers.RespError(c, h.Log, err)
+	}
+
+	// response
+	return helpers.RespSuccess(c, h.Log, tickets, "Get Ticket By Region Name Success")
+
 }

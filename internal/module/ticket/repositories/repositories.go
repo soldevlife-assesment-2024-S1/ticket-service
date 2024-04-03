@@ -24,6 +24,30 @@ type repositories struct {
 	redisClient    *redis.Client
 }
 
+// FindTicketDetailByTicketID implements Repositories.
+func (r *repositories) FindTicketDetailByTicketID(ctx context.Context, ticketID int64) ([]entity.TicketDetail, error) {
+	query := fmt.Sprintf("SELECT * FROM ticket_details WHERE ticket_id = %d", ticketID)
+	var ticketDetails []entity.TicketDetail
+	if err := r.db.SelectContext(ctx, &ticketDetails, query); err != nil {
+		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
+		return ticketDetails, err
+	}
+
+	return ticketDetails, nil
+}
+
+// FindTicketByRegionName implements Repositories.
+func (r *repositories) FindTicketByRegionName(ctx context.Context, regionName string) (entity.Ticket, error) {
+	query := fmt.Sprintf("SELECT * FROM tickets WHERE region = '%s'", regionName)
+	var ticket entity.Ticket
+	if err := r.db.SelectContext(ctx, &ticket, query); err != nil {
+		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
+		return ticket, err
+	}
+
+	return ticket, nil
+}
+
 // UpsertTicketDetail implements Repositories.
 func (r *repositories) UpdateTicketDetail(ctx context.Context, ticketDetail entity.TicketDetail) error {
 	tx, err := r.db.BeginTxx(ctx, nil)
@@ -79,6 +103,8 @@ type Repositories interface {
 	FindTicketDetails(ctx context.Context, page int, pageSize int) (ticketDetails []entity.TicketDetail, totalCount int, totalPage int, err error)
 	FindTicketDetail(ctx context.Context, ticketID int64) (entity.TicketDetail, error)
 	UpdateTicketDetail(ctx context.Context, ticketDetail entity.TicketDetail) error
+	FindTicketByRegionName(ctx context.Context, regionName string) (entity.Ticket, error)
+	FindTicketDetailByTicketID(ctx context.Context, ticketID int64) ([]entity.TicketDetail, error)
 }
 
 func New(db *sqlx.DB, log log.Logger, httpClient *circuit.HTTPClient, redisClient *redis.Client) Repositories {

@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"fmt"
 	"ticket-service/internal/module/ticket/models/response"
 	"ticket-service/internal/module/ticket/repositories"
 	"ticket-service/internal/pkg/errors"
@@ -10,6 +9,33 @@ import (
 
 type usecases struct {
 	repo repositories.Repositories
+}
+
+// GetTicketByRegionName implements Usecases.
+func (u *usecases) GetTicketByRegionName(ctx context.Context, regionName string) (resp []response.Ticket, err error) {
+	// get ticket by region name
+	ticket, err := u.repo.FindTicketByRegionName(ctx, regionName)
+	if err != nil {
+		return nil, err
+	}
+
+	// find ticket detail
+	ticketDetails, err := u.repo.FindTicketDetailByTicketID(ctx, ticket.ID)
+
+	// mapping response
+
+	for _, ticketDetail := range ticketDetails {
+		resp = append(resp, response.Ticket{
+			ID:        ticketDetail.ID,
+			Region:    ticket.Region,
+			EventDate: ticket.EventDate,
+			Level:     ticketDetail.Level,
+			Price:     ticketDetail.BasePrice,
+			Stock:     ticketDetail.Stock,
+		})
+	}
+
+	return resp, nil
 }
 
 // DecrementTicketStock implements Usecases.
@@ -28,8 +54,6 @@ func (u *usecases) DecrementTicketStock(ctx context.Context, ticketDetailID int6
 
 	// decrement stock
 	ticketDetail.Stock -= totalTicket
-
-	fmt.Println("stock", ticketDetail.Stock)
 
 	// update stock
 	err = u.repo.UpdateTicketDetail(ctx, ticketDetail)
@@ -108,6 +132,7 @@ type Usecases interface {
 	CheckStockTicket(ctx context.Context, ticketDetailID int) (resp response.StockTicket, err error)
 	DecrementTicketStock(ctx context.Context, ticketDetailID int64, totalTicket int64) error
 	IncrementTicketStock(ctx context.Context, ticketDetailID int64, totalTicket int64) error
+	GetTicketByRegionName(ctx context.Context, regionName string) (resp []response.Ticket, err error)
 }
 
 func New(repo repositories.Repositories) Usecases {
