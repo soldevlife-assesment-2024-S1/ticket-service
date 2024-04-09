@@ -65,7 +65,7 @@ func initService(cfg *config.Config) (*fiber.App, []*message.Router) {
 	}
 
 	ticketRepo := repositories.New(db, logger, httpClient, redis)
-	ticketUsecase := usecases.New(ticketRepo)
+	ticketUsecase := usecases.New(ticketRepo, publisher)
 	middleware := middleware.Middleware{
 		Repo: ticketRepo,
 	}

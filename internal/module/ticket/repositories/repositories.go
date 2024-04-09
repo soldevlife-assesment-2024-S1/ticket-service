@@ -24,6 +24,18 @@ type repositories struct {
 	redisClient    *redis.Client
 }
 
+// FindTicketByID implements Repositories.
+func (r *repositories) FindTicketByID(ctx context.Context, ticketID int64) (entity.Ticket, error) {
+	query := fmt.Sprintf("SELECT * FROM tickets WHERE id = %d", ticketID)
+	var ticket entity.Ticket
+	if err := r.db.GetContext(ctx, &ticket, query); err != nil {
+		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
+		return entity.Ticket{}, err
+	}
+
+	return ticket, nil
+}
+
 // FindTicketDetailByTicketID implements Repositories.
 func (r *repositories) FindTicketDetailByTicketID(ctx context.Context, ticketID int64) ([]entity.TicketDetail, error) {
 	query := fmt.Sprintf("SELECT * FROM ticket_details WHERE ticket_id = %d", ticketID)
@@ -100,6 +112,7 @@ type Repositories interface {
 	SetTicketRedis(ctx context.Context, tickets []response.Ticket) error
 	// db
 	FindTickets(ctx context.Context, page int, pageSize int) (tickets []entity.Ticket, totalCount int, totalPage int, err error)
+	FindTicketByID(ctx context.Context, ticketID int64) (entity.Ticket, error)
 	FindTicketDetails(ctx context.Context, page int, pageSize int) (ticketDetails []entity.TicketDetail, totalCount int, totalPage int, err error)
 	FindTicketDetail(ctx context.Context, ticketID int64) (entity.TicketDetail, error)
 	UpdateTicketDetail(ctx context.Context, ticketDetail entity.TicketDetail) error

@@ -2,13 +2,19 @@ package usecases
 
 import (
 	"context"
+	"encoding/json"
+	"ticket-service/internal/module/ticket/models/request"
 	"ticket-service/internal/module/ticket/models/response"
 	"ticket-service/internal/module/ticket/repositories"
 	"ticket-service/internal/pkg/errors"
+
+	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill/message"
 )
 
 type usecases struct {
-	repo repositories.Repositories
+	repo    repositories.Repositories
+	publish message.Publisher
 }
 
 // GetTicketByRegionName implements Usecases.
@@ -54,6 +60,42 @@ func (u *usecases) DecrementTicketStock(ctx context.Context, ticketDetailID int6
 
 	// decrement stock
 	ticketDetail.Stock -= totalTicket
+
+	// calculate total ticket
+
+	tickets, err := u.repo.FindTicketDetailByTicketID(ctx, ticketDetail.TicketID)
+	if err != nil {
+		return err
+	}
+
+	ticket, err := u.repo.FindTicketByID(ctx, ticketDetail.TicketID)
+	if err != nil {
+		return err
+	}
+
+	var totalTicketPerVenue int64
+
+	for _, ticket := range tickets {
+		totalTicketPerVenue += ticket.Stock
+	}
+
+	spec := request.TicketSoldOut{
+		VenueName: ticket.Region,
+		IsSoldOut: totalTicketPerVenue < 1,
+	}
+
+	payload, err := json.Marshal(spec)
+	if err != nil {
+		return err
+	}
+
+	// check stock
+	if totalTicketPerVenue < 1 {
+		err = u.publish.Publish("update_ticket_sold_out", message.NewMessage(watermill.NewUUID(), payload))
+		if err != nil {
+			return err
+		}
+	}
 
 	// update stock
 	err = u.repo.UpdateTicketDetail(ctx, ticketDetail)
@@ -135,9 +177,10 @@ type Usecases interface {
 	GetTicketByRegionName(ctx context.Context, regionName string) (resp []response.Ticket, err error)
 }
 
-func New(repo repositories.Repositories) Usecases {
+func New(repo repositories.Repositories, pub message.Publisher) Usecases {
 	return &usecases{
-		repo: repo,
+		repo:    repo,
+		publish: pub,
 	}
 }
 
