@@ -324,11 +324,25 @@ func (r *repositories) GetTicketOnline(ctx context.Context, regionName string) (
 	}
 
 	// parse response
-	var respData response.OnlineTicket
+	// var respData response.OnlineTicket
+
+	// dec := json.NewDecoder(resp.Body)
+	// if err := dec.Decode(&respData); err != nil {
+	// 	return response.OnlineTicket{}, err
+	// }
+
+	// parse response
+	var respBase response.BaseResponse
 
 	dec := json.NewDecoder(resp.Body)
-	if err := dec.Decode(&respData); err != nil {
+	if err := dec.Decode(&respBase); err != nil {
 		return response.OnlineTicket{}, err
+	}
+
+	respBase.Data = respBase.Data.(map[string]interface{})
+	respData := response.OnlineTicket{
+		IsSoldOut:      respBase.Data.(map[string]interface{})["is_sold_out"].(bool),
+		IsFirstSoldOut: respBase.Data.(map[string]interface{})["is_first_sold_out"].(bool),
 	}
 
 	return respData, nil
@@ -337,7 +351,7 @@ func (r *repositories) GetTicketOnline(ctx context.Context, regionName string) (
 // GetProfile implements Repositories.
 func (r *repositories) GetProfile(ctx context.Context, userID int64) (response.Profile, error) {
 	// http call to user service
-	url := fmt.Sprintf("http://%s:%s/api/private/user/profile?user_id=%s", r.cfgUserService.Host, r.cfgUserService.Port, userID)
+	url := fmt.Sprintf("http://%s:%s/api/private/user/profile?user_id=%d", r.cfgUserService.Host, r.cfgUserService.Port, userID)
 	resp, err := r.httpClient.Get(url)
 	if err != nil {
 		return response.Profile{}, err
@@ -351,11 +365,28 @@ func (r *repositories) GetProfile(ctx context.Context, userID int64) (response.P
 	}
 
 	// parse response
-	var respData response.Profile
+	var respBase response.BaseResponse
 
 	dec := json.NewDecoder(resp.Body)
-	if err := dec.Decode(&respData); err != nil {
+	if err := dec.Decode(&respBase); err != nil {
 		return response.Profile{}, err
+	}
+
+	respBase.Data = respBase.Data.(map[string]interface{})
+	respData := response.Profile{
+		ID:             int(respBase.Data.(map[string]interface{})["id"].(float64)),
+		UserID:         int(respBase.Data.(map[string]interface{})["user_id"].(float64)),
+		FirstName:      respBase.Data.(map[string]interface{})["first_name"].(string),
+		LastName:       respBase.Data.(map[string]interface{})["last_name"].(string),
+		Address:        respBase.Data.(map[string]interface{})["address"].(string),
+		District:       respBase.Data.(map[string]interface{})["district"].(string),
+		City:           respBase.Data.(map[string]interface{})["city"].(string),
+		State:          respBase.Data.(map[string]interface{})["state"].(string),
+		Country:        respBase.Data.(map[string]interface{})["country"].(string),
+		Region:         respBase.Data.(map[string]interface{})["region"].(string),
+		Phone:          respBase.Data.(map[string]interface{})["phone"].(string),
+		PersonalID:     respBase.Data.(map[string]interface{})["personal_id"].(string),
+		TypePersonalID: respBase.Data.(map[string]interface{})["type_personal_id"].(string),
 	}
 
 	return respData, nil
