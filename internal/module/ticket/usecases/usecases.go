@@ -10,11 +10,13 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/gorules/zen-go"
 )
 
 type usecases struct {
-	repo    repositories.Repositories
-	publish message.Publisher
+	repo                 repositories.Repositories
+	publish              message.Publisher
+	onlineTicketRulesBre zen.Decision
 }
 
 // GetTicketByRegionName implements Usecases.
@@ -27,6 +29,9 @@ func (u *usecases) GetTicketByRegionName(ctx context.Context, regionName string)
 
 	// find ticket detail
 	ticketDetails, err := u.repo.FindTicketDetailByTicketID(ctx, ticket.ID)
+	if err != nil {
+		return nil, err
+	}
 
 	// mapping response
 
@@ -168,7 +173,7 @@ func (u *usecases) InquiryTicketAmount(ctx context.Context, ticketID int64, tota
 
 type Usecases interface {
 	// public
-	ShowTickets(ctx context.Context, page int, pageSize int) (resp []response.Ticket, totalData int, totalPage int, err error)
+	ShowTickets(ctx context.Context, page int, pageSize int, userID int64) (resp []response.Ticket, totalData int, totalPage int, err error)
 	// private
 	InquiryTicketAmount(ctx context.Context, ticketID int64, totalTicket int) (resp response.InquiryTicketAmount, err error)
 	CheckStockTicket(ctx context.Context, ticketDetailID int) (resp response.StockTicket, err error)
@@ -177,14 +182,15 @@ type Usecases interface {
 	GetTicketByRegionName(ctx context.Context, regionName string) (resp []response.Ticket, err error)
 }
 
-func New(repo repositories.Repositories, pub message.Publisher) Usecases {
+func New(repo repositories.Repositories, pub message.Publisher, onlineTicketRulesBre zen.Decision) Usecases {
 	return &usecases{
-		repo:    repo,
-		publish: pub,
+		repo:                 repo,
+		publish:              pub,
+		onlineTicketRulesBre: onlineTicketRulesBre,
 	}
 }
 
-func (u *usecases) ShowTickets(ctx context.Context, page int, pageSize int) (r []response.Ticket, totalItem int, totalPage int, err error) {
+func (u *usecases) ShowTickets(ctx context.Context, page int, pageSize int, userID int64) (r []response.Ticket, totalItem int, totalPage int, err error) {
 	// // get data from redis
 	// tickets, err := u.repo.GetTicketRedis(ctx)
 	// if err != nil {
@@ -204,9 +210,64 @@ func (u *usecases) ShowTickets(ctx context.Context, page int, pageSize int) (r [
 		return nil, 0, 0, err
 	}
 
+	// get ticket region
+
+	var profile response.Profile
+
+	if userID != 0 {
+		profile, err = u.repo.GetProfile(ctx, userID)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+	}
+
+	if profile.Region == "" {
+		profile.Region = "Online"
+	}
+
+	venueResult, err := u.repo.GetTicketOnline(ctx, profile.Region)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	// check online ticket rules
+
+	result, err := u.onlineTicketRulesBre.Evaluate(map[string]any{
+		"is_ticket_first_sold_out": venueResult.IsFirstSoldOut,
+		"is_ticket_sold_out":       venueResult.IsSoldOut,
+	})
+
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	var responseBre response.BreOnlineTicket
+
+	byteRes, err := result.Result.MarshalJSON()
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	result.Result.UnmarshalJSON(byteRes)
+
+	err = json.Unmarshal(byteRes, &responseBre)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
 	for _, ticket := range tickets {
 		for _, td := range ticketDetails {
 			if ticket.ID == td.TicketID {
+				if ticket.Region == "Online" {
+					resp = append(resp, response.Ticket{
+						ID:        ticket.ID,
+						Stock:     responseBre.TotalSeat,
+						Region:    ticket.Region,
+						Level:     td.Level,
+						EventDate: ticket.EventDate,
+						Price:     td.BasePrice,
+					})
+				}
 				resp = append(resp, response.Ticket{
 					ID:        ticket.ID,
 					Stock:     td.Stock,

@@ -42,6 +42,9 @@ require (
 	github.com/santhosh-tekuri/jsonschema v1.2.4 // indirect
 	github.com/sony/gobreaker v0.5.0 // indirect
 	github.com/streadway/amqp v1.0.0 // indirect
+	github.com/tidwall/gjson v1.17.1 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.0 // indirect
 	go.elastic.co/fastjson v1.1.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/crypto v0.19.0 // indirect
@@ -60,6 +63,7 @@ require (
 	github.com/go-redsync/redsync/v4 v4.12.1
 	github.com/goccy/go-json v0.10.2
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorules/zen-go v0.2.0
 	github.com/klauspost/compress v1.17.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

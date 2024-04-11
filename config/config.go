@@ -8,13 +8,14 @@ import (
 )
 
 type Config struct {
-	Redis         RedisConfig
-	HttpServer    HttpServerConfig
-	HttpClient    HttpClientConfig
-	Logger        LoggerConfig
-	UserService   UserService
-	Database      DatabaseConfig
-	MessageStream MessageStreamConfig
+	Redis                 RedisConfig
+	HttpServer            HttpServerConfig
+	HttpClient            HttpClientConfig
+	Logger                LoggerConfig
+	UserService           UserService
+	RecommendationService RecommendationServiceConfig
+	Database              DatabaseConfig
+	MessageStream         MessageStreamConfig
 }
 
 type MessageStreamConfig struct {
@@ -72,6 +73,11 @@ type UserService struct {
 	Port string `envconfig:"user_service_port"`
 }
 
+type RecommendationServiceConfig struct {
+	Host string `envconfig:"recommendation_service_host"`
+	Port string `envconfig:"recommendation_service_port"`
+}
+
 type HttpServerConfig struct {
 	Host string `envconfig:"http_server_host"`
 	Port string `envconfig:"http_server_port"`
@@ -85,7 +91,7 @@ type LoggerConfig struct {
 func InitConfig() *Config {
 	var Cfg Config
 
-	err := envconfig.Process("user_service", &Cfg)
+	err := envconfig.Process("ticket_service", &Cfg)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

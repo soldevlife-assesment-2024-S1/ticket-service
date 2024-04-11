@@ -8,6 +8,7 @@ import (
 	"ticket-service/internal/module/ticket/repositories"
 	"ticket-service/internal/module/ticket/usecases"
 	"ticket-service/internal/pkg/database"
+	"ticket-service/internal/pkg/gorules"
 	"ticket-service/internal/pkg/http"
 	"ticket-service/internal/pkg/httpclient"
 	log_internal "ticket-service/internal/pkg/log"
@@ -48,6 +49,14 @@ func initService(cfg *config.Config) (*fiber.App, []*message.Router) {
 	logger := log_internal.GetLogger()
 	cb := httpclient.InitCircuitBreaker(&cfg.HttpClient, cfg.HttpClient.Type)
 	httpClient := httpclient.InitHttpClient(&cfg.HttpClient, cb)
+
+	// init business rules engine
+	pathOnlineTicket := "./assets/online-ticket-weight.json"
+	breOnlineTicket, err := gorules.Init(pathOnlineTicket)
+	if err != nil {
+		logger.Error(context.Background(), "Failed to init business rules engine", err)
+	}
+
 	ctx := context.Background()
 	// init message stream
 	amqp := messagestream.NewAmpq(&cfg.MessageStream)
@@ -64,8 +73,8 @@ func initService(cfg *config.Config) (*fiber.App, []*message.Router) {
 		logger.Error(ctx, "Failed to create publisher", err)
 	}
 
-	ticketRepo := repositories.New(db, logger, httpClient, redis)
-	ticketUsecase := usecases.New(ticketRepo, publisher)
+	ticketRepo := repositories.New(db, logger, httpClient, redis, &cfg.UserService, &cfg.RecommendationService)
+	ticketUsecase := usecases.New(ticketRepo, publisher, breOnlineTicket)
 	middleware := middleware.Middleware{
 		Repo: ticketRepo,
 	}

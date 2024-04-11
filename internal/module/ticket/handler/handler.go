@@ -34,8 +34,10 @@ func (h *TicketHandler) ShowTickets(c *fiber.Ctx) error {
 		return helpers.RespError(c, h.Log, errors.BadRequest(err.Error()))
 	}
 
+	userID := c.Locals("user_id").(int64)
+
 	// call usecase
-	tickets, totalItem, totalPage, err := h.Usecase.ShowTickets(c.Context(), req.Page, req.Size)
+	tickets, totalItem, totalPage, err := h.Usecase.ShowTickets(c.Context(), req.Page, req.Size, userID)
 	if err != nil {
 		return helpers.RespError(c, h.Log, err)
 	}

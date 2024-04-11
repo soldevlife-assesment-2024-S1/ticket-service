@@ -17,11 +17,12 @@ import (
 )
 
 type repositories struct {
-	db             *sqlx.DB
-	log            log.Logger
-	httpClient     *circuit.HTTPClient
-	cfgUserService *config.UserService
-	redisClient    *redis.Client
+	db                       *sqlx.DB
+	log                      log.Logger
+	httpClient               *circuit.HTTPClient
+	cfgUserService           *config.UserService
+	cfgRecommendationService *config.RecommendationServiceConfig
+	redisClient              *redis.Client
 }
 
 // FindTicketByID implements Repositories.
@@ -106,7 +107,9 @@ func (r *repositories) FindTicketDetail(ctx context.Context, ticketID int64) (en
 
 type Repositories interface {
 	// http
-	ValidateToken(ctx context.Context, token string) (bool, error)
+	ValidateToken(ctx context.Context, token string) (response.UserServiceValidate, error)
+	GetTicketOnline(ctx context.Context, regionName string) (response.OnlineTicket, error)
+	GetProfile(ctx context.Context, userID int64) (response.Profile, error)
 	// redis
 	GetTicketRedis(ctx context.Context) ([]response.Ticket, error)
 	SetTicketRedis(ctx context.Context, tickets []response.Ticket) error
@@ -120,12 +123,14 @@ type Repositories interface {
 	FindTicketDetailByTicketID(ctx context.Context, ticketID int64) ([]entity.TicketDetail, error)
 }
 
-func New(db *sqlx.DB, log log.Logger, httpClient *circuit.HTTPClient, redisClient *redis.Client) Repositories {
+func New(db *sqlx.DB, log log.Logger, httpClient *circuit.HTTPClient, redisClient *redis.Client, cfgUserService *config.UserService, cfgRecommendationService *config.RecommendationServiceConfig) Repositories {
 	return &repositories{
-		db:          db,
-		log:         log,
-		httpClient:  httpClient,
-		redisClient: redisClient,
+		db:                       db,
+		log:                      log,
+		httpClient:               httpClient,
+		redisClient:              redisClient,
+		cfgUserService:           cfgUserService,
+		cfgRecommendationService: cfgRecommendationService,
 	}
 }
 
@@ -253,34 +258,105 @@ func (r *repositories) GetTicketRedis(ctx context.Context) ([]response.Ticket, e
 	return tickets, nil
 }
 
-func (r *repositories) ValidateToken(ctx context.Context, token string) (bool, error) {
+func (r *repositories) ValidateToken(ctx context.Context, token string) (response.UserServiceValidate, error) {
 	// http call to user service
 	url := fmt.Sprintf("http://%s:%s/api/private/token/validate?token=%s", r.cfgUserService.Host, r.cfgUserService.Port, token)
 	resp, err := r.httpClient.Get(url)
 	if err != nil {
-		return false, err
+		return response.UserServiceValidate{}, err
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		r.log.Error(ctx, "Invalid token", resp.StatusCode)
-		return false, errors.BadRequest("Invalid token")
+		return response.UserServiceValidate{}, errors.BadRequest("Invalid token")
 	}
 
 	// parse response
-	var respData response.UserServiceValidate
+	var respBase response.BaseResponse
 
 	dec := json.NewDecoder(resp.Body)
-	if err := dec.Decode(&respData); err != nil {
-		return false, err
+	if err := dec.Decode(&respBase); err != nil {
+		return response.UserServiceValidate{
+			IsValid: false,
+			UserID:  0,
+		}, err
+	}
+
+	respBase.Data = respBase.Data.(map[string]interface{})
+	respData := response.UserServiceValidate{
+		IsValid:   respBase.Data.(map[string]interface{})["is_valid"].(bool),
+		UserID:    int64(respBase.Data.(map[string]interface{})["user_id"].(float64)),
+		EmailUser: respBase.Data.(map[string]interface{})["email_user"].(string),
 	}
 
 	if !respData.IsValid {
 		r.log.Error(ctx, "Invalid token", resp.StatusCode)
-		return false, errors.BadRequest("Invalid token")
+		return response.UserServiceValidate{
+			IsValid: false,
+			UserID:  0,
+		}, errors.BadRequest("Invalid token")
 	}
 
 	// validate token
-	return true, nil
+	return response.UserServiceValidate{
+		IsValid:   respData.IsValid,
+		UserID:    respData.UserID,
+		EmailUser: respData.EmailUser,
+	}, nil
+}
+
+// GetTicketOnline implements Repositories.
+func (r *repositories) GetTicketOnline(ctx context.Context, regionName string) (response.OnlineTicket, error) {
+	// http call to user service
+	url := fmt.Sprintf("http://%s:%s/api/private/online-ticket?region_name=%s", r.cfgRecommendationService.Host, r.cfgRecommendationService.Port, regionName)
+	resp, err := r.httpClient.Get(url)
+	if err != nil {
+		return response.OnlineTicket{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		r.log.Error(ctx, "Failed to get ticket online", resp.StatusCode)
+		return response.OnlineTicket{}, errors.BadRequest("Failed to get ticket online")
+	}
+
+	// parse response
+	var respData response.OnlineTicket
+
+	dec := json.NewDecoder(resp.Body)
+	if err := dec.Decode(&respData); err != nil {
+		return response.OnlineTicket{}, err
+	}
+
+	return respData, nil
+}
+
+// GetProfile implements Repositories.
+func (r *repositories) GetProfile(ctx context.Context, userID int64) (response.Profile, error) {
+	// http call to user service
+	url := fmt.Sprintf("http://%s:%s/api/private/user/profile?user_id=%s", r.cfgUserService.Host, r.cfgUserService.Port, userID)
+	resp, err := r.httpClient.Get(url)
+	if err != nil {
+		return response.Profile{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		r.log.Error(ctx, "Failed to get profile", resp.StatusCode)
+		return response.Profile{}, errors.BadRequest("Failed to get profile")
+	}
+
+	// parse response
+	var respData response.Profile
+
+	dec := json.NewDecoder(resp.Body)
+	if err := dec.Decode(&respData); err != nil {
+		return response.Profile{}, err
+	}
+
+	return respData, nil
 }
