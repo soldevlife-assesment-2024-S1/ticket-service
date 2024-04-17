@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"ticket-service/config"
 	"ticket-service/internal/module/ticket/models/entity"
 	"ticket-service/internal/module/ticket/models/response"
@@ -51,9 +52,10 @@ func (r *repositories) FindTicketDetailByTicketID(ctx context.Context, ticketID 
 
 // FindTicketByRegionName implements Repositories.
 func (r *repositories) FindTicketByRegionName(ctx context.Context, regionName string) (entity.Ticket, error) {
+	regionName = strings.ToLower(regionName)
 	query := fmt.Sprintf("SELECT * FROM tickets WHERE region = '%s'", regionName)
 	var ticket entity.Ticket
-	if err := r.db.SelectContext(ctx, &ticket, query); err != nil {
+	if err := r.db.GetContext(ctx, &ticket, query); err != nil {
 		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
 		return ticket, err
 	}
@@ -260,7 +262,7 @@ func (r *repositories) GetTicketRedis(ctx context.Context) ([]response.Ticket, e
 
 func (r *repositories) ValidateToken(ctx context.Context, token string) (response.UserServiceValidate, error) {
 	// http call to user service
-	url := fmt.Sprintf("http://%s:%s/api/private/token/validate?token=%s", r.cfgUserService.Host, r.cfgUserService.Port, token)
+	url := fmt.Sprintf("http://%s:%s/api/private/user/validate?token=%s", r.cfgUserService.Host, r.cfgUserService.Port, token)
 	resp, err := r.httpClient.Get(url)
 	if err != nil {
 		return response.UserServiceValidate{}, err
@@ -284,14 +286,25 @@ func (r *repositories) ValidateToken(ctx context.Context, token string) (respons
 		}, err
 	}
 
-	respBase.Data = respBase.Data.(map[string]interface{})
-	respData := response.UserServiceValidate{
-		IsValid:   respBase.Data.(map[string]interface{})["is_valid"].(bool),
-		UserID:    int64(respBase.Data.(map[string]interface{})["user_id"].(float64)),
-		EmailUser: respBase.Data.(map[string]interface{})["email_user"].(string),
+	jsonData, err := json.Marshal(respBase.Data)
+	if err != nil {
+		return response.UserServiceValidate{
+			IsValid:   false,
+			UserID:    0,
+			EmailUser: "",
+		}, err
 	}
 
-	if !respData.IsValid {
+	var dataUser response.UserServiceValidate
+
+	if err := json.Unmarshal(jsonData, &dataUser); err != nil {
+		return response.UserServiceValidate{
+			IsValid: false,
+			UserID:  0,
+		}, err
+	}
+
+	if !dataUser.IsValid {
 		r.log.Error(ctx, "Invalid token", resp.StatusCode)
 		return response.UserServiceValidate{
 			IsValid: false,
@@ -301,9 +314,9 @@ func (r *repositories) ValidateToken(ctx context.Context, token string) (respons
 
 	// validate token
 	return response.UserServiceValidate{
-		IsValid:   respData.IsValid,
-		UserID:    respData.UserID,
-		EmailUser: respData.EmailUser,
+		IsValid:   dataUser.IsValid,
+		UserID:    dataUser.UserID,
+		EmailUser: dataUser.EmailUser,
 	}, nil
 }
 

@@ -31,7 +31,7 @@ type StockTicket struct {
 }
 
 type BreOnlineTicket struct {
-	TotalSeat int64 `json:"total_seat"`
+	Seats int64 `json:"seats"`
 }
 
 type OnlineTicket struct {

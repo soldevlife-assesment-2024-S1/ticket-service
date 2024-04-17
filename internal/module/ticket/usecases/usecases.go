@@ -230,11 +230,19 @@ func (u *usecases) ShowTickets(ctx context.Context, page int, pageSize int, user
 		return nil, 0, 0, err
 	}
 
+	// check online ticket seat
+
+	onlineTicket, err := u.repo.FindTicketByRegionName(ctx, "Online")
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
 	// check online ticket rules
 
 	result, err := u.onlineTicketRulesBre.Evaluate(map[string]any{
 		"is_ticket_first_sold_out": venueResult.IsFirstSoldOut,
 		"is_ticket_sold_out":       venueResult.IsSoldOut,
+		"total_seat":               onlineTicket.Capacity,
 	})
 
 	if err != nil {
@@ -248,8 +256,6 @@ func (u *usecases) ShowTickets(ctx context.Context, page int, pageSize int, user
 		return nil, 0, 0, err
 	}
 
-	result.Result.UnmarshalJSON(byteRes)
-
 	err = json.Unmarshal(byteRes, &responseBre)
 	if err != nil {
 		return nil, 0, 0, err
@@ -258,10 +264,10 @@ func (u *usecases) ShowTickets(ctx context.Context, page int, pageSize int, user
 	for _, ticket := range tickets {
 		for _, td := range ticketDetails {
 			if ticket.ID == td.TicketID {
-				if ticket.Region == "Online" {
+				if ticket.Region == "online" && td.Level == "online" {
 					resp = append(resp, response.Ticket{
 						ID:        ticket.ID,
-						Stock:     responseBre.TotalSeat,
+						Stock:     responseBre.Seats,
 						Region:    ticket.Region,
 						Level:     td.Level,
 						EventDate: ticket.EventDate,
