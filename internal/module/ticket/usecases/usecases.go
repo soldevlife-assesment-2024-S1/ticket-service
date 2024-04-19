@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"ticket-service/internal/module/ticket/models/request"
 	"ticket-service/internal/module/ticket/models/response"
 	"ticket-service/internal/module/ticket/repositories"
@@ -68,7 +69,7 @@ func (u *usecases) DecrementTicketStock(ctx context.Context, ticketDetailID int6
 
 	// calculate total ticket
 
-	tickets, err := u.repo.FindTicketDetailByTicketID(ctx, ticketDetail.TicketID)
+	ticketDetails, err := u.repo.FindTicketDetailByTicketID(ctx, ticketDetail.TicketID)
 	if err != nil {
 		return err
 	}
@@ -80,9 +81,11 @@ func (u *usecases) DecrementTicketStock(ctx context.Context, ticketDetailID int6
 
 	var totalTicketPerVenue int64
 
-	for _, ticket := range tickets {
-		totalTicketPerVenue += ticket.Stock
+	for _, ticketDetail := range ticketDetails {
+		totalTicketPerVenue += ticketDetail.Stock
 	}
+
+	totalTicketPerVenue = totalTicketPerVenue - totalTicket
 
 	spec := request.TicketSoldOut{
 		VenueName: ticket.Region,
@@ -96,6 +99,7 @@ func (u *usecases) DecrementTicketStock(ctx context.Context, ticketDetailID int6
 
 	// check stock
 	if totalTicketPerVenue < 1 {
+		fmt.Println("publish ticket sold out", spec, totalTicketPerVenue)
 		err = u.publish.Publish("update_ticket_sold_out", message.NewMessage(watermill.NewUUID(), payload))
 		if err != nil {
 			return err
