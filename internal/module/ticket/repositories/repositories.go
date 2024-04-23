@@ -75,7 +75,10 @@ func (r *repositories) UpdateTicketDetail(ctx context.Context, ticketDetail enti
 	var existingTicketDetail entity.TicketDetail
 	err = r.db.GetContext(ctx, &existingTicketDetail, query, ticketDetail.ID)
 	if err != nil && err != sql.ErrNoRows {
-		tx.Rollback()
+		err = tx.Rollback()
+		if err != nil {
+			return errors.InternalServerError("error rolling back transaction")
+		}
 		return errors.InternalServerError("error locking rows")
 	}
 
@@ -83,7 +86,10 @@ func (r *repositories) UpdateTicketDetail(ctx context.Context, ticketDetail enti
 	queryUpdate := `UPDATE ticket_details SET stock = $1, updated_at = NOW() WHERE id = $2`
 	_, err = tx.ExecContext(ctx, queryUpdate, ticketDetail.Stock, ticketDetail.ID)
 	if err != nil {
-		tx.Rollback()
+		err = tx.Rollback()
+		if err != nil {
+			return errors.InternalServerError("error rolling back transaction")
+		}
 		return errors.InternalServerError("error upserting ticket detail")
 	}
 
