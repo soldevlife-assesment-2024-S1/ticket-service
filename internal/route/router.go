@@ -18,10 +18,12 @@ func Initialize(app *fiber.App, handlerTicket *handler.TicketHandler, m *middlew
 
 	// public routes
 	v1 := Api.Group("/v1")
-	v1.Get("/tickets", handlerTicket.ShowTickets)
+	v1.Get("/tickets", m.ValidateToken, handlerTicket.ShowTickets)
 
 	private := Api.Group("/private")
-	private.Get("/tickets/inquiry", handlerTicket.InquiryTicketAmount)
+	private.Get("/ticket/inquiry", handlerTicket.InquiryTicketAmount)
+	private.Get("/ticket/stock", handlerTicket.CheckStockTicket)
+	private.Get("ticket", handlerTicket.GetTicketByRegionName)
 
 	return app
 

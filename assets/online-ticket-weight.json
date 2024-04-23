@@ -1,0 +1,91 @@
+{
+  "contentType": "application/vnd.gorules.decision",
+  "nodes": [
+    {
+      "id": "77bac0ab-1cc9-4e9a-8990-1cb8b57d1ce4",
+      "name": "myRequest",
+      "type": "inputNode",
+      "position": {
+        "x": 220,
+        "y": 240
+      }
+    },
+    {
+      "id": "16fba454-59c6-43d3-bcd2-fa161b78d262",
+      "name": "myDecisionTable",
+      "type": "decisionTableNode",
+      "content": {
+        "hitPolicy": "first",
+        "inputs": [
+          {
+            "id": "fff02a9b-58d5-4917-b906-4c2b5bf0db7b",
+            "name": "is_ticket_first_sold_out",
+            "type": "expression",
+            "field": "is_ticket_first_sold_out"
+          },
+          {
+            "id": "db549f21-687e-41fc-bddc-54e1d3fecb77",
+            "type": "expression",
+            "field": "is_ticket_sold_out",
+            "name": "is_ticket_sold_out"
+          }
+        ],
+        "outputs": [
+          {
+            "id": "314246b3-0a04-4352-9d6e-9cb61022f295",
+            "name": "Output",
+            "type": "expression",
+            "field": "seats"
+          }
+        ],
+        "rules": [
+          {
+            "_id": "6a9740fe-f348-4831-bdd4-1fc23876c41a",
+            "fff02a9b-58d5-4917-b906-4c2b5bf0db7b": "true",
+            "db549f21-687e-41fc-bddc-54e1d3fecb77": "true",
+            "314246b3-0a04-4352-9d6e-9cb61022f295": "0.4 * total_seat"
+          },
+          {
+            "_id": "70d44373-7223-458c-8ff5-4188acb67b73",
+            "fff02a9b-58d5-4917-b906-4c2b5bf0db7b": "false",
+            "db549f21-687e-41fc-bddc-54e1d3fecb77": "true",
+            "314246b3-0a04-4352-9d6e-9cb61022f295": "0.2 * total_seat"
+          },
+          {
+            "_id": "a5a6f3bf-0565-4638-b70d-47b046ae63b1",
+            "fff02a9b-58d5-4917-b906-4c2b5bf0db7b": "false",
+            "db549f21-687e-41fc-bddc-54e1d3fecb77": "false",
+            "314246b3-0a04-4352-9d6e-9cb61022f295": "0.25 * total_seat"
+          }
+        ]
+      },
+      "position": {
+        "x": 615,
+        "y": 235
+      }
+    },
+    {
+      "id": "62c665c9-5679-4747-8e57-6211e3239bb5",
+      "name": "myResponse",
+      "type": "outputNode",
+      "position": {
+        "x": 945,
+        "y": 235
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "5ada5d7f-ca19-4000-965a-689e981df329",
+      "type": "edge",
+      "sourceId": "77bac0ab-1cc9-4e9a-8990-1cb8b57d1ce4",
+      "targetId": "16fba454-59c6-43d3-bcd2-fa161b78d262"
+    },
+    {
+      "id": "5c4a0d20-2b40-4234-9ebf-ddc587529a77",
+      "type": "edge",
+      "sourceId": "16fba454-59c6-43d3-bcd2-fa161b78d262",
+      "targetId": "62c665c9-5679-4747-8e57-6211e3239bb5"
+    }
+  ]
+}

@@ -2,7 +2,9 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"strings"
 	"ticket-service/config"
 	"ticket-service/internal/module/ticket/models/entity"
 	"ticket-service/internal/module/ticket/models/response"
@@ -16,18 +18,88 @@ import (
 )
 
 type repositories struct {
-	db             *sqlx.DB
-	log            log.Logger
-	httpClient     *circuit.HTTPClient
-	cfgUserService *config.UserService
-	redisClient    *redis.Client
+	db                       *sqlx.DB
+	log                      log.Logger
+	httpClient               *circuit.HTTPClient
+	cfgUserService           *config.UserService
+	cfgRecommendationService *config.RecommendationServiceConfig
+	redisClient              *redis.Client
+}
+
+// FindTicketByID implements Repositories.
+func (r *repositories) FindTicketByID(ctx context.Context, ticketID int64) (entity.Ticket, error) {
+	query := fmt.Sprintf("SELECT * FROM tickets WHERE id = %d", ticketID)
+	var ticket entity.Ticket
+	if err := r.db.GetContext(ctx, &ticket, query); err != nil {
+		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
+		return entity.Ticket{}, err
+	}
+
+	return ticket, nil
+}
+
+// FindTicketDetailByTicketID implements Repositories.
+func (r *repositories) FindTicketDetailByTicketID(ctx context.Context, ticketID int64) ([]entity.TicketDetail, error) {
+	query := fmt.Sprintf("SELECT * FROM ticket_details WHERE ticket_id = %d", ticketID)
+	var ticketDetails []entity.TicketDetail
+	if err := r.db.SelectContext(ctx, &ticketDetails, query); err != nil {
+		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
+		return ticketDetails, err
+	}
+
+	return ticketDetails, nil
+}
+
+// FindTicketByRegionName implements Repositories.
+func (r *repositories) FindTicketByRegionName(ctx context.Context, regionName string) (entity.Ticket, error) {
+	regionName = strings.ToLower(regionName)
+	query := fmt.Sprintf("SELECT * FROM tickets WHERE region = '%s'", regionName)
+	var ticket entity.Ticket
+	if err := r.db.GetContext(ctx, &ticket, query); err != nil {
+		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
+		return ticket, err
+	}
+
+	return ticket, nil
+}
+
+// UpsertTicketDetail implements Repositories.
+func (r *repositories) UpdateTicketDetail(ctx context.Context, ticketDetail entity.TicketDetail) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return errors.InternalServerError("error starting transaction")
+	}
+
+	// Lock the rows for update
+	query := `SELECT * FROM ticket_details WHERE id = $1 FOR UPDATE`
+	var existingTicketDetail entity.TicketDetail
+	err = r.db.GetContext(ctx, &existingTicketDetail, query, ticketDetail.ID)
+	if err != nil && err != sql.ErrNoRows {
+		tx.Rollback()
+		return errors.InternalServerError("error locking rows")
+	}
+
+	// Update existing ticket detail
+	queryUpdate := `UPDATE ticket_details SET stock = $1, updated_at = NOW() WHERE id = $2`
+	_, err = tx.ExecContext(ctx, queryUpdate, ticketDetail.Stock, ticketDetail.ID)
+	if err != nil {
+		tx.Rollback()
+		return errors.InternalServerError("error upserting ticket detail")
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return errors.InternalServerError("error committing transaction")
+	}
+
+	return nil
 }
 
 // FindTicketDetail implements Repositories.
 func (r *repositories) FindTicketDetail(ctx context.Context, ticketID int64) (entity.TicketDetail, error) {
-	query := "SELECT * FROM ticket_details WHERE ticket_id = ?"
+	query := fmt.Sprintf("SELECT * FROM ticket_details WHERE id = %d", ticketID)
 	var ticketDetail entity.TicketDetail
-	if err := r.db.GetContext(ctx, &ticketDetail, query, ticketID); err != nil {
+	if err := r.db.GetContext(ctx, &ticketDetail, query); err != nil {
 		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
 		return entity.TicketDetail{}, err
 	}
@@ -37,21 +109,30 @@ func (r *repositories) FindTicketDetail(ctx context.Context, ticketID int64) (en
 
 type Repositories interface {
 	// http
-	ValidateToken(ctx context.Context, token string) (bool, error)
+	ValidateToken(ctx context.Context, token string) (response.UserServiceValidate, error)
+	GetTicketOnline(ctx context.Context, regionName string) (response.OnlineTicket, error)
+	GetProfile(ctx context.Context, userID int64) (response.Profile, error)
 	// redis
 	GetTicketRedis(ctx context.Context) ([]response.Ticket, error)
 	SetTicketRedis(ctx context.Context, tickets []response.Ticket) error
+	// db
 	FindTickets(ctx context.Context, page int, pageSize int) (tickets []entity.Ticket, totalCount int, totalPage int, err error)
+	FindTicketByID(ctx context.Context, ticketID int64) (entity.Ticket, error)
 	FindTicketDetails(ctx context.Context, page int, pageSize int) (ticketDetails []entity.TicketDetail, totalCount int, totalPage int, err error)
 	FindTicketDetail(ctx context.Context, ticketID int64) (entity.TicketDetail, error)
+	UpdateTicketDetail(ctx context.Context, ticketDetail entity.TicketDetail) error
+	FindTicketByRegionName(ctx context.Context, regionName string) (entity.Ticket, error)
+	FindTicketDetailByTicketID(ctx context.Context, ticketID int64) ([]entity.TicketDetail, error)
 }
 
-func New(db *sqlx.DB, log log.Logger, httpClient *circuit.HTTPClient, redisClient *redis.Client) Repositories {
+func New(db *sqlx.DB, log log.Logger, httpClient *circuit.HTTPClient, redisClient *redis.Client, cfgUserService *config.UserService, cfgRecommendationService *config.RecommendationServiceConfig) Repositories {
 	return &repositories{
-		db:          db,
-		log:         log,
-		httpClient:  httpClient,
-		redisClient: redisClient,
+		db:                       db,
+		log:                      log,
+		httpClient:               httpClient,
+		redisClient:              redisClient,
+		cfgUserService:           cfgUserService,
+		cfgRecommendationService: cfgRecommendationService,
 	}
 }
 
@@ -179,34 +260,147 @@ func (r *repositories) GetTicketRedis(ctx context.Context) ([]response.Ticket, e
 	return tickets, nil
 }
 
-func (r *repositories) ValidateToken(ctx context.Context, token string) (bool, error) {
+func (r *repositories) ValidateToken(ctx context.Context, token string) (response.UserServiceValidate, error) {
 	// http call to user service
-	url := fmt.Sprintf("http://%s:%s/api/private/token/validate?token=%s", r.cfgUserService.Host, r.cfgUserService.Port, token)
+	url := fmt.Sprintf("http://%s:%s/api/private/user/validate?token=%s", r.cfgUserService.Host, r.cfgUserService.Port, token)
 	resp, err := r.httpClient.Get(url)
 	if err != nil {
-		return false, err
+		return response.UserServiceValidate{}, err
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		r.log.Error(ctx, "Invalid token", resp.StatusCode)
-		return false, errors.BadRequest("Invalid token")
+		return response.UserServiceValidate{}, errors.BadRequest("Invalid token")
 	}
 
 	// parse response
-	var respData response.UserServiceValidate
+	var respBase response.BaseResponse
 
 	dec := json.NewDecoder(resp.Body)
-	if err := dec.Decode(&respData); err != nil {
-		return false, err
+	if err := dec.Decode(&respBase); err != nil {
+		return response.UserServiceValidate{
+			IsValid: false,
+			UserID:  0,
+		}, err
 	}
 
-	if !respData.IsValid {
+	jsonData, err := json.Marshal(respBase.Data)
+	if err != nil {
+		return response.UserServiceValidate{
+			IsValid:   false,
+			UserID:    0,
+			EmailUser: "",
+		}, err
+	}
+
+	var dataUser response.UserServiceValidate
+
+	if err := json.Unmarshal(jsonData, &dataUser); err != nil {
+		return response.UserServiceValidate{
+			IsValid: false,
+			UserID:  0,
+		}, err
+	}
+
+	if !dataUser.IsValid {
 		r.log.Error(ctx, "Invalid token", resp.StatusCode)
-		return false, errors.BadRequest("Invalid token")
+		return response.UserServiceValidate{
+			IsValid: false,
+			UserID:  0,
+		}, errors.BadRequest("Invalid token")
 	}
 
 	// validate token
-	return true, nil
+	return response.UserServiceValidate{
+		IsValid:   dataUser.IsValid,
+		UserID:    dataUser.UserID,
+		EmailUser: dataUser.EmailUser,
+	}, nil
+}
+
+// GetTicketOnline implements Repositories.
+func (r *repositories) GetTicketOnline(ctx context.Context, regionName string) (response.OnlineTicket, error) {
+	// http call to user service
+	url := fmt.Sprintf("http://%s:%s/api/private/online-ticket?region_name=%s", r.cfgRecommendationService.Host, r.cfgRecommendationService.Port, regionName)
+	resp, err := r.httpClient.Get(url)
+	if err != nil {
+		return response.OnlineTicket{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		r.log.Error(ctx, "Failed to get ticket online", resp.StatusCode)
+		return response.OnlineTicket{}, errors.BadRequest("Failed to get ticket online")
+	}
+
+	// parse response
+	// var respData response.OnlineTicket
+
+	// dec := json.NewDecoder(resp.Body)
+	// if err := dec.Decode(&respData); err != nil {
+	// 	return response.OnlineTicket{}, err
+	// }
+
+	// parse response
+	var respBase response.BaseResponse
+
+	dec := json.NewDecoder(resp.Body)
+	if err := dec.Decode(&respBase); err != nil {
+		return response.OnlineTicket{}, err
+	}
+
+	respBase.Data = respBase.Data.(map[string]interface{})
+	respData := response.OnlineTicket{
+		IsSoldOut:      respBase.Data.(map[string]interface{})["is_sold_out"].(bool),
+		IsFirstSoldOut: respBase.Data.(map[string]interface{})["is_first_sold_out"].(bool),
+	}
+
+	return respData, nil
+}
+
+// GetProfile implements Repositories.
+func (r *repositories) GetProfile(ctx context.Context, userID int64) (response.Profile, error) {
+	// http call to user service
+	url := fmt.Sprintf("http://%s:%s/api/private/user/profile?user_id=%d", r.cfgUserService.Host, r.cfgUserService.Port, userID)
+	resp, err := r.httpClient.Get(url)
+	if err != nil {
+		return response.Profile{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		r.log.Error(ctx, "Failed to get profile", resp.StatusCode)
+		return response.Profile{}, errors.BadRequest("Failed to get profile")
+	}
+
+	// parse response
+	var respBase response.BaseResponse
+
+	dec := json.NewDecoder(resp.Body)
+	if err := dec.Decode(&respBase); err != nil {
+		return response.Profile{}, err
+	}
+
+	respBase.Data = respBase.Data.(map[string]interface{})
+	respData := response.Profile{
+		ID:             int(respBase.Data.(map[string]interface{})["id"].(float64)),
+		UserID:         int(respBase.Data.(map[string]interface{})["user_id"].(float64)),
+		FirstName:      respBase.Data.(map[string]interface{})["first_name"].(string),
+		LastName:       respBase.Data.(map[string]interface{})["last_name"].(string),
+		Address:        respBase.Data.(map[string]interface{})["address"].(string),
+		District:       respBase.Data.(map[string]interface{})["district"].(string),
+		City:           respBase.Data.(map[string]interface{})["city"].(string),
+		State:          respBase.Data.(map[string]interface{})["state"].(string),
+		Country:        respBase.Data.(map[string]interface{})["country"].(string),
+		Region:         respBase.Data.(map[string]interface{})["region"].(string),
+		Phone:          respBase.Data.(map[string]interface{})["phone"].(string),
+		PersonalID:     respBase.Data.(map[string]interface{})["personal_id"].(string),
+		TypePersonalID: respBase.Data.(map[string]interface{})["type_personal_id"].(string),
+	}
+
+	return respData, nil
 }
