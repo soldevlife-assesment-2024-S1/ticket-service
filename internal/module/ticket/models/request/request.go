@@ -34,3 +34,9 @@ type TicketSoldOut struct {
 	VenueName string `json:"venue_name" validate:"required"`
 	IsSoldOut bool   `json:"is_sold_out" validate:"required"`
 }
+
+type OnlineTicketRules struct {
+	IsTicketSoldOut      bool  `json:"is_ticket_sold_out" validate:"required"`
+	IsTicketFirstSoldOut bool  `json:"is_ticket_first_sold_out" validate:"required"`
+	TotalSeat            int64 `json:"total_seat" validate:"required"`
+}

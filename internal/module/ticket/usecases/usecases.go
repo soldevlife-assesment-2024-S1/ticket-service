@@ -20,6 +20,25 @@ type usecases struct {
 	onlineTicketRulesBre zen.Decision
 }
 
+type Usecases interface {
+	// public
+	ShowTickets(ctx context.Context, page int, pageSize int, userID int64) (resp []response.Ticket, totalData int, totalPage int, err error)
+	// private
+	InquiryTicketAmount(ctx context.Context, ticketID int64, totalTicket int) (resp response.InquiryTicketAmount, err error)
+	CheckStockTicket(ctx context.Context, ticketDetailID int) (resp response.StockTicket, err error)
+	DecrementTicketStock(ctx context.Context, ticketDetailID int64, totalTicket int64) error
+	IncrementTicketStock(ctx context.Context, ticketDetailID int64, totalTicket int64) error
+	GetTicketByRegionName(ctx context.Context, regionName string) (resp []response.Ticket, err error)
+}
+
+func New(repo repositories.Repositories, pub message.Publisher, onlineTicketRulesBre zen.Decision) Usecases {
+	return &usecases{
+		repo:                 repo,
+		publish:              pub,
+		onlineTicketRulesBre: onlineTicketRulesBre,
+	}
+}
+
 // GetTicketByRegionName implements Usecases.
 func (u *usecases) GetTicketByRegionName(ctx context.Context, regionName string) (resp []response.Ticket, err error) {
 	// get ticket by region name
@@ -175,25 +194,6 @@ func (u *usecases) InquiryTicketAmount(ctx context.Context, ticketID int64, tota
 	}, nil
 }
 
-type Usecases interface {
-	// public
-	ShowTickets(ctx context.Context, page int, pageSize int, userID int64) (resp []response.Ticket, totalData int, totalPage int, err error)
-	// private
-	InquiryTicketAmount(ctx context.Context, ticketID int64, totalTicket int) (resp response.InquiryTicketAmount, err error)
-	CheckStockTicket(ctx context.Context, ticketDetailID int) (resp response.StockTicket, err error)
-	DecrementTicketStock(ctx context.Context, ticketDetailID int64, totalTicket int64) error
-	IncrementTicketStock(ctx context.Context, ticketDetailID int64, totalTicket int64) error
-	GetTicketByRegionName(ctx context.Context, regionName string) (resp []response.Ticket, err error)
-}
-
-func New(repo repositories.Repositories, pub message.Publisher, onlineTicketRulesBre zen.Decision) Usecases {
-	return &usecases{
-		repo:                 repo,
-		publish:              pub,
-		onlineTicketRulesBre: onlineTicketRulesBre,
-	}
-}
-
 func (u *usecases) ShowTickets(ctx context.Context, page int, pageSize int, userID int64) (r []response.Ticket, totalItem int, totalPage int, err error) {
 	// // get data from redis
 	// tickets, err := u.repo.GetTicketRedis(ctx)
@@ -243,11 +243,15 @@ func (u *usecases) ShowTickets(ctx context.Context, page int, pageSize int, user
 
 	// check online ticket rules
 
-	result, err := u.onlineTicketRulesBre.Evaluate(map[string]any{
-		"is_ticket_first_sold_out": venueResult.IsFirstSoldOut,
-		"is_ticket_sold_out":       venueResult.IsSoldOut,
-		"total_seat":               onlineTicket.Capacity,
-	})
+	spec := request.OnlineTicketRules{
+		IsTicketSoldOut:      venueResult.IsSoldOut,
+		IsTicketFirstSoldOut: venueResult.IsFirstSoldOut,
+		TotalSeat:            onlineTicket.Capacity,
+	}
+
+	// struct to map
+
+	result, err := u.onlineTicketRulesBre.Evaluate(spec)
 
 	if err != nil {
 		return nil, 0, 0, err
