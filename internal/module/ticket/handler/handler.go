@@ -101,8 +101,6 @@ func (h *TicketHandler) CheckStockTicket(c *fiber.Ctx) error {
 	return helpers.RespSuccess(c, h.Log, amount, "Check Stock Ticket Success")
 }
 
-// TODO: Handler Decrement Ticket Stock
-
 func (h *TicketHandler) DecrementTicketStock(msg *message.Message) error {
 	msg.Ack()
 	req := request.DecrementTicketStock{}

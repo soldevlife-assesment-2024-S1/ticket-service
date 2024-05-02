@@ -77,7 +77,7 @@ require (
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rubyist/circuitbreaker v2.2.1+incompatible
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.51.0 // indirect
+	github.com/valyala/fasthttp v1.51.0
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	go.elastic.co/apm v1.15.0
 	go.uber.org/zap v1.27.0
