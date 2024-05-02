@@ -4,26 +4,53 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"testing"
 	"ticket-service/internal/module/ticket/mocks"
 	"ticket-service/internal/module/ticket/models/entity"
 	"ticket-service/internal/module/ticket/models/response"
 	"ticket-service/internal/module/ticket/usecases"
+	"ticket-service/internal/pkg/gorules"
 	"time"
 
+	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/gorules/zen-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	uc   usecases.Usecases
-	repo *mocks.Repositories
-	ctx  context.Context
+	uc                   usecases.Usecases
+	repo                 *mocks.Repositories
+	ctx                  context.Context
+	onlineTicketRulesBre zen.Decision
+	p                    message.Publisher
 )
+
+type mockPublisher struct{}
+
+// Close implements message.Publisher.
+func (m *mockPublisher) Close() error {
+	return nil
+}
+
+// Publish implements message.Publisher.
+func (m *mockPublisher) Publish(topic string, messages ...*message.Message) error {
+	return nil
+}
+
+func NewMockPublisher() message.Publisher {
+	return &mockPublisher{}
+}
 
 func setup() {
 	repo = new(mocks.Repositories)
-	uc = usecases.New(repo, nil, nil)
+	// init business rules engine
+	pathOnlineTicket := "../../../../assets/online-ticket-weight.json"
+	onlineTicketRulesBre, _ = gorules.Init(pathOnlineTicket)
+	fmt.Println("onlineTicketRulesBre", onlineTicketRulesBre)
+	p = NewMockPublisher()
+	uc = usecases.New(repo, p, onlineTicketRulesBre)
 	ctx = context.Background()
 }
 func TestGetTicketByRegionName(t *testing.T) {
@@ -343,57 +370,104 @@ func TestInquiryTicketAmount(t *testing.T) {
 	})
 }
 
-// func TestShowTickets(t *testing.T) {
-// 	// Setup
-// 	setup()
-// 	defer repo.AssertExpectations(t)
+func TestShowTickets(t *testing.T) {
+	// Setup
+	setup()
+	defer repo.AssertExpectations(t)
 
-// 	t.Run("success", func(t *testing.T) {
-// 		// Mock repository calls
-// 		tickets := []entity.Ticket{
-// 			{
-// 				ID:        1,
-// 				Capacity:  100,
-// 				Region:    "exampleRegion",
-// 				EventDate: time.Now(),
-// 				CreatedAt: time.Time{},
-// 				UpdatedAt: sql.NullTime{},
-// 				DeletedAt: sql.NullTime{},
-// 			},
-// 			{
-// 				ID:        2,
-// 				Capacity:  100,
-// 				Region:    "exampleRegion",
-// 				EventDate: time.Now(),
-// 				CreatedAt: time.Time{},
-// 				UpdatedAt: sql.NullTime{},
-// 				DeletedAt: sql.NullTime{},
-// 			},
-// 		}
-// 		page := 1
-// 		pageSize := 10
+	t.Run("success", func(t *testing.T) {
+		// Mock repository calls
+		tickets := []entity.Ticket{
+			{
+				ID:        1,
+				Capacity:  100,
+				Region:    "exampleRegion",
+				EventDate: time.Now(),
+				CreatedAt: time.Time{},
+				UpdatedAt: sql.NullTime{},
+				DeletedAt: sql.NullTime{},
+			},
+			{
+				ID:        2,
+				Capacity:  100,
+				Region:    "exampleRegion",
+				EventDate: time.Now(),
+				CreatedAt: time.Time{},
+				UpdatedAt: sql.NullTime{},
+				DeletedAt: sql.NullTime{},
+			},
+		}
+		ticketDetails := []entity.TicketDetail{
+			{
+				ID:        1,
+				TicketID:  1,
+				Level:     "exampleLevel",
+				Stock:     10,
+				BasePrice: 100.00,
+				CreatedAt: time.Time{},
+				UpdatedAt: sql.NullTime{},
+				DeletedAt: sql.NullTime{},
+			},
+			{
+				ID:        2,
+				TicketID:  2,
+				Level:     "exampleLevel",
+				Stock:     10,
+				BasePrice: 100.00,
+				CreatedAt: time.Time{},
+				UpdatedAt: sql.NullTime{},
+				DeletedAt: sql.NullTime{},
+			},
+		}
 
-// 		repo.On("FindAllTickets", ctx).Return(tickets, nil)
+		profileResponse := response.Profile{
+			ID:             1,
+			UserID:         2,
+			FirstName:      "exampleFirstName",
+			LastName:       "exampleLastName",
+			Address:        "exampleAddress",
+			District:       "kota",
+			City:           "exampleCity",
+			State:          "exampleState",
+			Country:        "exampleCountry",
+			Region:         "Online",
+			Phone:          "examplePhone",
+			PersonalID:     "examplePersonalID",
+			TypePersonalID: "exampleTypePersonalID",
+		}
 
-// 		// Call the function
-// 		result, _, _, err := uc.ShowTickets(ctx, page, pageSize, 1)
+		responseOnlineTicket := response.OnlineTicket{
+			IsSoldOut:      false,
+			IsFirstSoldOut: false,
+		}
+		page := 1
+		pageSize := 10
 
-// 		// Assertions
-// 		require.NoError(t, err)
-// 		require.Len(t, result, 2)
-// 	})
+		repo.On("FindTickets", ctx, page, pageSize).Return(tickets, 0, 0, nil)
+		repo.On("FindTicketDetails", ctx, page, pageSize).Return(ticketDetails, 0, 0, nil)
+		repo.On("GetProfile", ctx, profileResponse.UserID).Return(profileResponse, nil)
+		repo.On("GetTicketOnline", ctx, "Online").Return(responseOnlineTicket, nil)
+		repo.On("FindTicketByRegionName", ctx, "Online").Return(tickets[0], nil)
 
-// 	t.Run("error", func(t *testing.T) {
-// 		page := 1
-// 		pageSize := 10
-// 		// Mock repository calls
-// 		repo.On("FindAllTickets", ctx).Return([]entity.Ticket{}, errors.New("error"))
+		// Call the function
+		result, _, _, err := uc.ShowTickets(ctx, page, pageSize, profileResponse.UserID)
 
-// 		// Call the function
-// 		result, _, _, err := uc.ShowTickets(ctx, page, pageSize, 2)
+		// Assertions
+		require.NoError(t, err)
+		require.Len(t, result, 2)
+	})
 
-// 		// Assertions
-// 		require.Error(t, err)
-// 		assert.Nil(t, result)
-// 	})
-// }
+	// t.Run("error", func(t *testing.T) {
+	// 	page := 1
+	// 	pageSize := 11
+	// 	// Mock repository calls
+	// 	repo.On("FindTickets", ctx, page, pageSize).Return([]entity.Ticket{}, errors.New("error"))
+
+	// 	// Call the function
+	// 	result, _, _, err := uc.ShowTickets(ctx, page, pageSize, 1)
+
+	// 	// Assertions
+	// 	require.Error(t, err)
+	// 	assert.Nil(t, result)
+	// })
+}

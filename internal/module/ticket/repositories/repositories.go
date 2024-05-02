@@ -394,7 +394,7 @@ func (r *repositories) GetProfile(ctx context.Context, userID int64) (response.P
 	respBase.Data = respBase.Data.(map[string]interface{})
 	respData := response.Profile{
 		ID:             int(respBase.Data.(map[string]interface{})["id"].(float64)),
-		UserID:         int(respBase.Data.(map[string]interface{})["user_id"].(float64)),
+		UserID:         int64(respBase.Data.(map[string]interface{})["user_id"].(float64)),
 		FirstName:      respBase.Data.(map[string]interface{})["first_name"].(string),
 		LastName:       respBase.Data.(map[string]interface{})["last_name"].(string),
 		Address:        respBase.Data.(map[string]interface{})["address"].(string),
