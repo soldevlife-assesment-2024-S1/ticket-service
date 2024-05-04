@@ -110,6 +110,10 @@ func TestInquiryTicketAmount(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		// mock data
+		mockResponse := response.InquiryTicketAmount{
+			TotalTicket: 10,
+			TotalAmount: 1000,
+		}
 		httpReq := httptest.NewRequest(http.MethodGet, "/ticket/inquiry", nil)
 		httpReq.Header.Set("Content-Type", "application/json")
 
@@ -117,9 +121,11 @@ func TestInquiryTicketAmount(t *testing.T) {
 		ctx.Request().SetRequestURI("api/private/ticket/inquiry")
 		ctx.Request().Header.SetMethod(http.MethodGet)
 		ctx.Request().Header.SetContentType("application/json")
+		ctx.Request().URI().QueryArgs().Add("ticket_detail_id", "1")
+		ctx.Request().URI().QueryArgs().Add("total_ticket", "10")
 
 		// mock usecase
-		uc.On("InquiryTicketAmount", ctx.Context()).Return(nil)
+		uc.On("InquiryTicketAmount", ctx.Context(), int64(1), 10).Return(mockResponse, nil)
 
 		// call handler
 		err := h.InquiryTicketAmount(ctx)
@@ -136,6 +142,9 @@ func TestCheckStockTicket(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		// mock data
+		mockResponse := response.StockTicket{
+			Stock: 10,
+		}
 		httpReq := httptest.NewRequest(http.MethodGet, "/ticket/stock", nil)
 		httpReq.Header.Set("Content-Type", "application/json")
 
@@ -143,9 +152,10 @@ func TestCheckStockTicket(t *testing.T) {
 		ctx.Request().SetRequestURI("api/private/ticket/stock")
 		ctx.Request().Header.SetMethod(http.MethodGet)
 		ctx.Request().Header.SetContentType("application/json")
+		ctx.Request().URI().QueryArgs().Add("ticket_detail_id", "1")
 
 		// mock usecase
-		uc.On("CheckStockTicket", ctx.Context()).Return(nil)
+		uc.On("CheckStockTicket", ctx.Context(), 1).Return(mockResponse, nil)
 
 		// call handler
 		err := h.CheckStockTicket(ctx)
