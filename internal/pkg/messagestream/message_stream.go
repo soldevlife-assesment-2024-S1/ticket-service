@@ -1,8 +1,11 @@
 package messagestream
 
 import (
+	"encoding/json"
 	"os"
 	"strconv"
+	"ticket-service/internal/module/ticket/models/request"
+	"ticket-service/internal/pkg/log"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -61,4 +64,21 @@ func NewRouter(pub message.Publisher, poisonTopic string, handlerTopicName strin
 	router.AddPlugin(plugin.SignalsHandler)
 
 	return router, err
+}
+
+func PoisonedQueue(err error, p message.Publisher, msg *message.Message, topicTarget string, log log.Logger) {
+	// publish to poison queue
+	reqPoisoned := request.PoisonedQueue{
+		TopicTarget: topicTarget,
+		ErrorMsg:    err.Error(),
+		Payload:     msg.Payload,
+	}
+
+	jsonPayload, _ := json.Marshal(reqPoisoned)
+
+	err = p.Publish("poisoned_queue", message.NewMessage(watermill.NewUUID(), jsonPayload))
+	if err != nil {
+		log.Error(msg.Context(), "Failed to publish to poison queue", err)
+	}
+
 }

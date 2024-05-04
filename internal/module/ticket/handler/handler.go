@@ -8,8 +8,8 @@ import (
 	"ticket-service/internal/pkg/errors"
 	"ticket-service/internal/pkg/helpers"
 	"ticket-service/internal/pkg/log"
+	"ticket-service/internal/pkg/messagestream"
 
-	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/go-playground/validator/v10"
 	"github.com/goccy/go-json"
@@ -108,19 +108,7 @@ func (h *TicketHandler) DecrementTicketStock(msg *message.Message) error {
 	if err := json.Unmarshal(msg.Payload, &req); err != nil {
 		h.Log.Error(msg.Context(), "Failed to unmarshal data", err)
 
-		// publish to poison queue
-		reqPoisoned := request.PoisonedQueue{
-			TopicTarget: "decrement_stock_ticket",
-			ErrorMsg:    err.Error(),
-			Payload:     msg.Payload,
-		}
-
-		jsonPayload, _ := json.Marshal(reqPoisoned)
-
-		err = h.Publish.Publish("poisoned_queue", message.NewMessage(watermill.NewUUID(), jsonPayload))
-		if err != nil {
-			h.Log.Error(msg.Context(), "Failed to publish to poison queue", err)
-		}
+		messagestream.PoisonedQueue(err, h.Publish, msg, "decrement_stock_ticket", h.Log)
 
 		return err
 	}
@@ -134,18 +122,7 @@ func (h *TicketHandler) DecrementTicketStock(msg *message.Message) error {
 		h.Log.Error(msg.Context(), "Failed to decrement ticket stock", err)
 
 		// publish to poison queue
-		reqPoisoned := request.PoisonedQueue{
-			TopicTarget: "decrement_stock_ticket",
-			ErrorMsg:    err.Error(),
-			Payload:     msg.Payload,
-		}
-
-		jsonPayload, _ := json.Marshal(reqPoisoned)
-
-		err = h.Publish.Publish("poisoned_queue", message.NewMessage(watermill.NewUUID(), jsonPayload))
-		if err != nil {
-			h.Log.Error(msg.Context(), "Failed to publish to poison queue", err)
-		}
+		messagestream.PoisonedQueue(err, h.Publish, msg, "decrement_stock_ticket", h.Log)
 
 		return err
 	}
@@ -161,18 +138,7 @@ func (h *TicketHandler) IncrementTicketStock(msg *message.Message) error {
 		h.Log.Error(msg.Context(), "Failed to unmarshal data", err)
 
 		// publish to poison queue
-		reqPoisoned := request.PoisonedQueue{
-			TopicTarget: "increment_stock_ticket",
-			ErrorMsg:    err.Error(),
-			Payload:     msg.Payload,
-		}
-
-		jsonPayload, _ := json.Marshal(reqPoisoned)
-
-		err = h.Publish.Publish("poisoned_queue", message.NewMessage(watermill.NewUUID(), jsonPayload))
-		if err != nil {
-			h.Log.Error(msg.Context(), "Failed to publish to poison queue", err)
-		}
+		messagestream.PoisonedQueue(err, h.Publish, msg, "increment_stock_ticket", h.Log)
 
 		return err
 	}
@@ -185,18 +151,7 @@ func (h *TicketHandler) IncrementTicketStock(msg *message.Message) error {
 		h.Log.Error(msg.Context(), "Failed to increment ticket stock", err)
 
 		// publish to poison queue
-		reqPoisoned := request.PoisonedQueue{
-			TopicTarget: "increment_stock_ticket",
-			ErrorMsg:    err.Error(),
-			Payload:     msg.Payload,
-		}
-
-		jsonPayload, _ := json.Marshal(reqPoisoned)
-
-		err = h.Publish.Publish("poisoned_queue", message.NewMessage(watermill.NewUUID(), jsonPayload))
-		if err != nil {
-			h.Log.Error(msg.Context(), "Failed to publish to poison queue", err)
-		}
+		messagestream.PoisonedQueue(err, h.Publish, msg, "increment_stock_ticket", h.Log)
 
 		return err
 	}
