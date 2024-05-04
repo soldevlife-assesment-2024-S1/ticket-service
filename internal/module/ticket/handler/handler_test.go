@@ -1,7 +1,7 @@
 package handler_test
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -13,8 +13,10 @@ import (
 	"ticket-service/internal/pkg/log"
 	log_internal "ticket-service/internal/pkg/log"
 
+	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/go-playground/validator/v10"
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
@@ -96,8 +98,6 @@ func TestShowTickets(t *testing.T) {
 
 		// call handler
 		err := h.ShowTickets(ctx)
-		fmt.Println("error ticket", err)
-
 		// assert
 		assert.Nil(t, err)
 
@@ -123,7 +123,6 @@ func TestInquiryTicketAmount(t *testing.T) {
 
 		// call handler
 		err := h.InquiryTicketAmount(ctx)
-		fmt.Println("error ticket", err)
 
 		// assert
 		assert.Nil(t, err)
@@ -150,7 +149,64 @@ func TestCheckStockTicket(t *testing.T) {
 
 		// call handler
 		err := h.CheckStockTicket(ctx)
-		fmt.Println("error ticket", err)
+
+		// assert
+		assert.Nil(t, err)
+
+	})
+}
+
+func TestIncrementTicketStock(t *testing.T) {
+	setup()
+	defer teardown()
+
+	t.Run("success", func(t *testing.T) {
+		// mock data
+		request := request.IncrementTicketStock{
+			TicketDetailID: 1,
+			TotalTickets:   10,
+		}
+
+		jsonReq, _ := json.Marshal(request)
+
+		payload := message.NewMessage(watermill.NewUUID(), jsonReq)
+
+		ctx := context.Background()
+
+		// mock usecase
+		uc.On("IncrementTicketStock", ctx, request.TicketDetailID, request.TotalTickets).Return(nil)
+
+		// call handler
+		err := h.IncrementTicketStock(payload)
+
+		// assert
+		assert.Nil(t, err)
+
+	})
+}
+
+func TestDecrementTicketStock(t *testing.T) {
+	setup()
+	defer teardown()
+
+	t.Run("success", func(t *testing.T) {
+		// mock data
+		request := request.DecrementTicketStock{
+			TicketDetailID: 1,
+			TotalTickets:   10,
+		}
+
+		jsonReq, _ := json.Marshal(request)
+
+		payload := message.NewMessage(watermill.NewUUID(), jsonReq)
+
+		ctx := context.Background()
+
+		// mock usecase
+		uc.On("DecrementTicketStock", ctx, request.TicketDetailID, request.TotalTickets).Return(nil)
+
+		// call handler
+		err := h.DecrementTicketStock(payload)
 
 		// assert
 		assert.Nil(t, err)

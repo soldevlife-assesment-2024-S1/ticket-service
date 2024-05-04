@@ -394,8 +394,7 @@ func TestShowTickets(t *testing.T) {
 				EventDate: time.Now(),
 				CreatedAt: time.Time{},
 				UpdatedAt: sql.NullTime{},
-				DeletedAt: sql.NullTime{},
-			},
+				DeletedAt: sql.NullTime{}},
 		}
 		ticketDetails := []entity.TicketDetail{
 			{
@@ -465,7 +464,6 @@ func TestShowTickets(t *testing.T) {
 
 		// Call the function
 		result, size, page, err := uc.ShowTickets(ctx, page, pageSize, 1)
-		fmt.Println("error", size)
 
 		// Assertions
 		assert.NotNil(t, err)
