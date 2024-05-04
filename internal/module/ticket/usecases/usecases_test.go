@@ -450,24 +450,27 @@ func TestShowTickets(t *testing.T) {
 		repo.On("FindTicketByRegionName", ctx, "Online").Return(tickets[0], nil)
 
 		// Call the function
-		result, _, _, err := uc.ShowTickets(ctx, page, pageSize, profileResponse.UserID)
+		result, _, _, err := uc.ShowTickets(ctx, page, pageSize, int64(profileResponse.UserID))
 
 		// Assertions
 		require.NoError(t, err)
 		require.Len(t, result, 2)
 	})
 
-	// t.Run("error", func(t *testing.T) {
-	// 	page := 1
-	// 	pageSize := 11
-	// 	// Mock repository calls
-	// 	repo.On("FindTickets", ctx, page, pageSize).Return([]entity.Ticket{}, errors.New("error"))
+	t.Run("error", func(t *testing.T) {
+		page := 1
+		pageSize := 11
+		// Mock repository calls
+		repo.On("FindTickets", ctx, page, pageSize).Return([]entity.Ticket{}, 0, 0, errors.New("error"))
 
-	// 	// Call the function
-	// 	result, _, _, err := uc.ShowTickets(ctx, page, pageSize, 1)
+		// Call the function
+		result, size, page, err := uc.ShowTickets(ctx, page, pageSize, 1)
+		fmt.Println("error", size)
 
-	// 	// Assertions
-	// 	require.Error(t, err)
-	// 	assert.Nil(t, result)
-	// })
+		// Assertions
+		assert.NotNil(t, err)
+		assert.Nil(t, result)
+		assert.Equal(t, 0, size)
+		assert.Equal(t, 0, page)
+	})
 }
