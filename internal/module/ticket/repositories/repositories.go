@@ -119,8 +119,8 @@ type Repositories interface {
 	GetTicketOnline(ctx context.Context, regionName string) (response.OnlineTicket, error)
 	GetProfile(ctx context.Context, userID int64) (response.Profile, error)
 	// redis
-	GetTicketRedis(ctx context.Context) ([]response.Ticket, error)
-	SetTicketRedis(ctx context.Context, tickets []response.Ticket) error
+	// GetTicketRedis(ctx context.Context) ([]response.Ticket, error)
+	// SetTicketRedis(ctx context.Context, tickets []response.Ticket) error
 	// db
 	FindTickets(ctx context.Context, page int, pageSize int) (tickets []entity.Ticket, totalCount int, totalPage int, err error)
 	FindTicketByID(ctx context.Context, ticketID int64) (entity.Ticket, error)
@@ -232,39 +232,39 @@ func (r *repositories) FindTicketDetails(ctx context.Context, page int, pageSize
 	return ticketDetails, totalCount, totalPage, nil
 }
 
-func (r *repositories) SetTicketRedis(ctx context.Context, tickets []response.Ticket) error {
-	// set data to redis
-	val, err := json.Marshal(tickets)
-	if err != nil {
-		r.log.Error(ctx, "From Repositories: Failed to marshal data", err)
-		return errors.BadRequest("Failed to marshal data")
-	}
+// func (r *repositories) SetTicketRedis(ctx context.Context, tickets []response.Ticket) error {
+// 	// set data to redis
+// 	val, err := json.Marshal(tickets)
+// 	if err != nil {
+// 		r.log.Error(ctx, "From Repositories: Failed to marshal data", err)
+// 		return errors.BadRequest("Failed to marshal data")
+// 	}
 
-	if err := r.redisClient.Set(ctx, "tickets", val, 0).Err(); err != nil {
-		r.log.Error(ctx, "From Repositories: Failed to set data to redis", err)
-		return err
-	}
+// 	if err := r.redisClient.Set(ctx, "tickets", val, 0).Err(); err != nil {
+// 		r.log.Error(ctx, "From Repositories: Failed to set data to redis", err)
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (r *repositories) GetTicketRedis(ctx context.Context) ([]response.Ticket, error) {
-	// get data from redis
-	val, err := r.redisClient.Get(ctx, "tickets").Result()
-	if err != nil {
-		r.log.Error(ctx, "From Repositories: Failed to get data from redis", err)
-		return nil, err
-	}
+// func (r *repositories) GetTicketRedis(ctx context.Context) ([]response.Ticket, error) {
+// 	// get data from redis
+// 	val, err := r.redisClient.Get(ctx, "tickets").Result()
+// 	if err != nil {
+// 		r.log.Error(ctx, "From Repositories: Failed to get data from redis", err)
+// 		return nil, err
+// 	}
 
-	// parse response
-	var tickets []response.Ticket
-	if err := json.Unmarshal([]byte(val), &tickets); err != nil {
-		r.log.Error(ctx, "From Repositories: Failed to unmarshal data", err)
-		return nil, err
-	}
+// 	// parse response
+// 	var tickets []response.Ticket
+// 	if err := json.Unmarshal([]byte(val), &tickets); err != nil {
+// 		r.log.Error(ctx, "From Repositories: Failed to unmarshal data", err)
+// 		return nil, err
+// 	}
 
-	return tickets, nil
-}
+// 	return tickets, nil
+// }
 
 func (r *repositories) ValidateToken(ctx context.Context, token string) (response.UserServiceValidate, error) {
 	// http call to user service
