@@ -1,48 +1,59 @@
 package middleware_test
 
-import (
-	"ticket-service/internal/module/ticket/mocks"
-	log "ticket-service/internal/pkg/log"
-	"ticket-service/internal/pkg/middleware"
+// import (
+// 	"net/http"
+// 	"net/http/httptest"
+// 	"testing"
+// 	"ticket-service/internal/module/ticket/mocks"
+// 	"ticket-service/internal/module/ticket/models/response"
+// 	log "ticket-service/internal/pkg/log"
+// 	log_internal "ticket-service/internal/pkg/log"
+// 	"ticket-service/internal/pkg/middleware"
 
-	"github.com/gofiber/fiber/v2"
-)
+// 	"github.com/gofiber/fiber/v2"
+// 	"github.com/stretchr/testify/assert"
+// 	"github.com/valyala/fasthttp"
+// )
 
-var (
-	m        middleware.Middleware
-	logTest  log.Logger
-	mockRepo *mocks.Repositories
-	app      *fiber.App
-)
+// var (
+// 	m        middleware.Middleware
+// 	logTest  log.Logger
+// 	mockRepo *mocks.Repositories
+// 	app      *fiber.App
+// )
 
-func setup() {
-	logTest = log.SetupLogger()
-	mockRepo = new(mocks.Repositories)
-	app = fiber.New()
-	m = middleware.Middleware{
-		Log:  logTest,
-		Repo: mockRepo,
-	}
-}
+// func setup() {
+// 	logZap := log_internal.SetupLogger()
+// 	log_internal.Init(logZap)
+// 	logTest := log_internal.GetLogger()
+// 	mockRepo = new(mocks.Repositories)
+// 	m = middleware.Middleware{
+// 		Log:  logTest,
+// 		Repo: mockRepo,
+// 	}
 
-func teardown() {
-	logTest = nil
-	mockRepo = nil
-	app = nil
-	m = middleware.Middleware{}
-}
+// 	app = fiber.New()
+// }
 
-// func TestMiddleware_ValidateToken(t *testing.T) {
+// func teardown() {
+// 	logTest = nil
+// 	mockRepo = nil
+// 	app = nil
+// 	m = middleware.Middleware{}
+// }
+
+// func TestMiddlewareValidateToken(t *testing.T) {
 // 	setup()
 // 	defer teardown()
 
 // 	t.Run("Success Validate Token", func(t *testing.T) {
 // 		// mock data
-// 		httpReq := httptest.NewRequest(http.MethodGet, "/tickets", nil)
+// 		httpReq := httptest.NewRequest(http.MethodGet, "/api/v1/tickets", nil)
 // 		httpReq.Header.Set("Content-Type", "application/json")
+// 		httpReq.Header.Set("Authorization", "Bearer token")
 // 		ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
 // 		ctx.Request().Header.Set("Authorization", "Bearer token")
-// 		ctx.Request().SetRequestURI("api/v1/tickets")
+// 		ctx.Request().SetRequestURI("/api/v1/tickets")
 // 		ctx.Request().Header.SetMethod(http.MethodGet)
 // 		ctx.Request().Header.SetContentType("application/json")
 
@@ -55,6 +66,9 @@ func teardown() {
 // 		mockRepo.On("ValidateToken", ctx.Context(), "token").Return(mockResponse, nil)
 
 // 		// call function
-// 		m.ValidateToken(ctx)
+// 		err := m.ValidateToken(ctx)
+
+// 		// assert
+// 		assert.Nil(t, err)
 // 	})
 // }
