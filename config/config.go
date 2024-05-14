@@ -16,6 +16,7 @@ type Config struct {
 	RecommendationService RecommendationServiceConfig
 	Database              DatabaseConfig
 	MessageStream         MessageStreamConfig
+	ServiceName           string `envconfig:"service_name"`
 }
 
 type MessageStreamConfig struct {
