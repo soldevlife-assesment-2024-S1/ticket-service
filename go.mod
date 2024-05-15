@@ -55,6 +55,8 @@ require (
 	github.com/tidwall/gjson v1.17.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
+	github.com/uptrace/opentelemetry-go-extra/otelsql v0.2.4 // indirect
+	github.com/uptrace/opentelemetry-go-extra/otelsqlx v0.2.4 // indirect
 	go.elastic.co/fastjson v1.1.0 // indirect
 	go.opentelemetry.io/contrib v1.20.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.26.0 // indirect
