@@ -88,8 +88,6 @@ func InitTracer(cfg *config.Config) *sdktrace.TracerProvider {
 			)),
 	)
 	otel.SetTracerProvider(tp)
-	// set trace parrent context
-	otel.SetTextMapPropagator(propagation.TraceContext{})
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	return tp
 }
