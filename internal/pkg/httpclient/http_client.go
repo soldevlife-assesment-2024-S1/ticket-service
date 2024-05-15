@@ -1,8 +1,11 @@
 package httpclient
 
 import (
+	"net/http"
 	"ticket-service/config"
 	"time"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	circuit "github.com/rubyist/circuitbreaker"
 )
@@ -29,7 +32,6 @@ func InitCircuitBreaker(cfg *config.HttpClientConfig, breakerType string) (cb *c
 	return cb
 }
 
-// InitHttpClient initializes the http client based on the configuration and circuit breaker that has been initialized before
 func InitHttpClient(cfg *config.HttpClientConfig, cb *circuit.Breaker) *circuit.HTTPClient {
 	timeout := time.Duration(cfg.Timeout) * time.Second
 	client := circuit.NewHTTPClientWithBreaker(
@@ -37,5 +39,6 @@ func InitHttpClient(cfg *config.HttpClientConfig, cb *circuit.Breaker) *circuit.
 		timeout,
 		nil,
 	)
+	client.Client.Transport = otelhttp.NewTransport(http.DefaultTransport)
 	return client
 }

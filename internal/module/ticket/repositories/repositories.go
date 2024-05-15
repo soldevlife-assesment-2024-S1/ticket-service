@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/http"
 	"strings"
 	"ticket-service/config"
 	"ticket-service/internal/module/ticket/models/entity"
@@ -269,7 +270,11 @@ func (r *repositories) FindTicketDetails(ctx context.Context, page int, pageSize
 func (r *repositories) ValidateToken(ctx context.Context, token string) (response.UserServiceValidate, error) {
 	// http call to user service
 	url := fmt.Sprintf("http://%s:%s/api/private/user/validate?token=%s", r.cfgUserService.Host, r.cfgUserService.Port, token)
-	resp, err := r.httpClient.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return response.UserServiceValidate{}, err
+	}
+	resp, err := r.httpClient.Do(req)
 	if err != nil {
 		return response.UserServiceValidate{}, err
 	}
@@ -330,7 +335,11 @@ func (r *repositories) ValidateToken(ctx context.Context, token string) (respons
 func (r *repositories) GetTicketOnline(ctx context.Context, regionName string) (response.OnlineTicket, error) {
 	// http call to user service
 	url := fmt.Sprintf("http://%s:%s/api/private/online-ticket?region_name=%s", r.cfgRecommendationService.Host, r.cfgRecommendationService.Port, regionName)
-	resp, err := r.httpClient.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return response.OnlineTicket{}, err
+	}
+	resp, err := r.httpClient.Do(req)
 	if err != nil {
 		return response.OnlineTicket{}, err
 	}
@@ -371,7 +380,11 @@ func (r *repositories) GetTicketOnline(ctx context.Context, regionName string) (
 func (r *repositories) GetProfile(ctx context.Context, userID int64) (response.Profile, error) {
 	// http call to user service
 	url := fmt.Sprintf("http://%s:%s/api/private/user/profile?user_id=%d", r.cfgUserService.Host, r.cfgUserService.Port, userID)
-	resp, err := r.httpClient.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return response.Profile{}, err
+	}
+	resp, err := r.httpClient.Do(req)
 	if err != nil {
 		return response.Profile{}, err
 	}

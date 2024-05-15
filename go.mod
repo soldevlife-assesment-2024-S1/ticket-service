@@ -26,6 +26,7 @@ require (
 	github.com/elastic/go-sysinfo v1.1.1 // indirect
 	github.com/elastic/go-windows v1.0.0 // indirect
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
+	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -94,6 +95,7 @@ require (
 	github.com/valyala/fasthttp v1.53.0
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	go.elastic.co/apm v1.15.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.51.0
 	go.opentelemetry.io/otel/sdk v1.26.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/sys v0.20.0 // indirect
