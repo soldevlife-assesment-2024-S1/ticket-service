@@ -37,7 +37,7 @@ func (h *TicketHandler) ShowTickets(c *fiber.Ctx) error {
 	userID := c.Locals("user_id").(int64)
 
 	// call usecase
-	tickets, totalItem, totalPage, err := h.Usecase.ShowTickets(c.Context(), req.Page, req.Size, userID)
+	tickets, totalItem, totalPage, err := h.Usecase.ShowTickets(c.UserContext(), req.Page, req.Size, userID)
 	if err != nil {
 		return helpers.RespError(c, h.Log, err)
 	}
@@ -92,7 +92,7 @@ func (h *TicketHandler) CheckStockTicket(c *fiber.Ctx) error {
 	}
 
 	// call usecase
-	amount, err := h.Usecase.CheckStockTicket(c.Context(), intTicketDetailID)
+	amount, err := h.Usecase.CheckStockTicket(c.UserContext(), intTicketDetailID)
 	if err != nil {
 		return helpers.RespError(c, h.Log, err)
 	}
@@ -163,7 +163,7 @@ func (h *TicketHandler) GetTicketByRegionName(c *fiber.Ctx) error {
 	regionName := c.Query("region_name")
 
 	// call usecase
-	tickets, err := h.Usecase.GetTicketByRegionName(c.Context(), regionName)
+	tickets, err := h.Usecase.GetTicketByRegionName(c.UserContext(), regionName)
 	if err != nil {
 		return helpers.RespError(c, h.Log, err)
 	}
