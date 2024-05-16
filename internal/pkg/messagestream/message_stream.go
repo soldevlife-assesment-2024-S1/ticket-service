@@ -2,15 +2,16 @@ package messagestream
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"ticket-service/internal/module/ticket/models/request"
-	"ticket-service/internal/pkg/log"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/ThreeDotsLabs/watermill/message/router/plugin"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 )
 
 var (
@@ -66,7 +67,7 @@ func NewRouter(pub message.Publisher, poisonTopic string, handlerTopicName strin
 	return router, err
 }
 
-func PoisonedQueue(err error, p message.Publisher, msg *message.Message, topicTarget string, log log.Logger) {
+func PoisonedQueue(err error, p message.Publisher, msg *message.Message, topicTarget string, log *otelzap.Logger) {
 	// publish to poison queue
 	reqPoisoned := request.PoisonedQueue{
 		TopicTarget: topicTarget,
@@ -78,7 +79,7 @@ func PoisonedQueue(err error, p message.Publisher, msg *message.Message, topicTa
 
 	err = p.Publish("poisoned_queue", message.NewMessage(watermill.NewUUID(), jsonPayload))
 	if err != nil {
-		log.Error(msg.Context(), "Failed to publish to poison queue", err)
+		log.Ctx(msg.Context()).Error(fmt.Sprintf("Failed to publish to poison queue: %v", err))
 	}
 
 }

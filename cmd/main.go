@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"ticket-service/config"
 	"ticket-service/internal/module/ticket/handler"
@@ -44,9 +45,10 @@ func main() {
 func initService(cfg *config.Config) (*fiber.App, []*message.Router) {
 	db := database.GetConnection(&cfg.Database)
 	redis := redis.SetupClient(&cfg.Redis)
-	logZap := log_internal.SetupLogger()
-	log_internal.Init(logZap)
-	logger := log_internal.GetLogger()
+	// logZap := log_internal.SetupLogger()
+	// log_internal.Init(logZap)
+	// logger := log_internal.GetLogger()
+	logger := log_internal.Setup()
 	cb := httpclient.InitCircuitBreaker(&cfg.HttpClient, cfg.HttpClient.Type)
 	httpClient := httpclient.InitHttpClient(&cfg.HttpClient, cb)
 
@@ -54,7 +56,7 @@ func initService(cfg *config.Config) (*fiber.App, []*message.Router) {
 	pathOnlineTicket := "./assets/online-ticket-weight.json"
 	breOnlineTicket, err := gorules.Init(pathOnlineTicket)
 	if err != nil {
-		logger.Error(context.Background(), "Failed to init business rules engine", err)
+		logger.Ctx(context.Background()).Fatal(fmt.Sprintf("Failed to init BRE: %v", err))
 	}
 
 	ctx := context.Background()
@@ -64,13 +66,13 @@ func initService(cfg *config.Config) (*fiber.App, []*message.Router) {
 	// Init Subscriber
 	subscriber, err := amqp.NewSubscriber()
 	if err != nil {
-		logger.Error(ctx, "Failed to create subscriber", err)
+		logger.Ctx(ctx).Fatal(fmt.Sprintf("Failed to create subscriber: %v", err))
 	}
 
 	// Init Publisher
 	publisher, err := amqp.NewPublisher()
 	if err != nil {
-		logger.Error(ctx, "Failed to create publisher", err)
+		logger.Ctx(ctx).Fatal(fmt.Sprintf("Failed to create publisher: %v", err))
 	}
 
 	ticketRepo := repositories.New(db, logger, httpClient, redis, &cfg.UserService, &cfg.RecommendationService)
@@ -91,12 +93,12 @@ func initService(cfg *config.Config) (*fiber.App, []*message.Router) {
 
 	incrementTicketStock, err := messagestream.NewRouter(publisher, "increment_stock_ticket_poisoned", "increment_stock_ticket_handler", "increment_stock_ticket", subscriber, ticketHandler.IncrementTicketStock)
 	if err != nil {
-		logger.Error(ctx, "Failed to create consume_booking_queue router", err)
+		logger.Ctx(ctx).Error(fmt.Sprintf("Failed to create consume_booking_queue router: %v", err))
 	}
 
 	decrementTicketStock, err := messagestream.NewRouter(publisher, "decrement_stock_ticket_poisoned", "decrement_stock_ticket_handler", "decrement_stock_ticket", subscriber, ticketHandler.DecrementTicketStock)
 	if err != nil {
-		logger.Error(ctx, "Failed to create consume_booking_queue router", err)
+		logger.Ctx(ctx).Error(fmt.Sprintf("Failed to create consume_booking_queue router: %v", err))
 	}
 
 	messageRouters = append(messageRouters, incrementTicketStock, decrementTicketStock)

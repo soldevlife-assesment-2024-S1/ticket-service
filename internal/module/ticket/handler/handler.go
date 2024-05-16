@@ -2,22 +2,23 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"ticket-service/internal/module/ticket/models/request"
 	"ticket-service/internal/module/ticket/usecases"
 	"ticket-service/internal/pkg/errors"
 	"ticket-service/internal/pkg/helpers"
-	"ticket-service/internal/pkg/log"
 	"ticket-service/internal/pkg/messagestream"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/go-playground/validator/v10"
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 )
 
 type TicketHandler struct {
-	Log       log.Logger
+	Log       *otelzap.Logger
 	Validator *validator.Validate
 	Usecase   usecases.Usecases
 	Publish   message.Publisher
@@ -106,7 +107,7 @@ func (h *TicketHandler) DecrementTicketStock(msg *message.Message) error {
 	req := request.DecrementTicketStock{}
 
 	if err := json.Unmarshal(msg.Payload, &req); err != nil {
-		h.Log.Error(msg.Context(), "Failed to unmarshal data", err)
+		h.Log.Ctx(msg.Context()).Error(fmt.Sprintf("Failed to unmarshal data: %v", err))
 
 		messagestream.PoisonedQueue(err, h.Publish, msg, "decrement_stock_ticket", h.Log)
 
@@ -119,7 +120,7 @@ func (h *TicketHandler) DecrementTicketStock(msg *message.Message) error {
 	err := h.Usecase.DecrementTicketStock(ctx, req.TicketDetailID, req.TotalTickets)
 
 	if err != nil {
-		h.Log.Error(msg.Context(), "Failed to decrement ticket stock", err)
+		h.Log.Ctx(msg.Context()).Error(fmt.Sprintf("Failed to decrement ticket stock: %v", err))
 
 		// publish to poison queue
 		messagestream.PoisonedQueue(err, h.Publish, msg, "decrement_stock_ticket", h.Log)
@@ -135,7 +136,7 @@ func (h *TicketHandler) IncrementTicketStock(msg *message.Message) error {
 	req := request.IncrementTicketStock{}
 
 	if err := json.Unmarshal(msg.Payload, &req); err != nil {
-		h.Log.Error(msg.Context(), "Failed to unmarshal data", err)
+		h.Log.Ctx(msg.Context()).Error(fmt.Sprintf("Failed to unmarshal data: %v", err))
 
 		// publish to poison queue
 		messagestream.PoisonedQueue(err, h.Publish, msg, "increment_stock_ticket", h.Log)
@@ -148,7 +149,7 @@ func (h *TicketHandler) IncrementTicketStock(msg *message.Message) error {
 	err := h.Usecase.IncrementTicketStock(ctx, req.TicketDetailID, req.TotalTickets)
 
 	if err != nil {
-		h.Log.Error(msg.Context(), "Failed to increment ticket stock", err)
+		h.Log.Ctx(msg.Context()).Error(fmt.Sprintf("Failed to increment ticket stock: %v", err))
 
 		// publish to poison queue
 		messagestream.PoisonedQueue(err, h.Publish, msg, "increment_stock_ticket", h.Log)

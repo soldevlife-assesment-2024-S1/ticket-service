@@ -10,17 +10,17 @@ import (
 	"ticket-service/internal/module/ticket/models/entity"
 	"ticket-service/internal/module/ticket/models/response"
 	"ticket-service/internal/pkg/errors"
-	"ticket-service/internal/pkg/log"
 
 	"github.com/goccy/go-json"
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	circuit "github.com/rubyist/circuitbreaker"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 )
 
 type repositories struct {
 	db                       *sqlx.DB
-	log                      log.Logger
+	log                      *otelzap.Logger
 	httpClient               *circuit.HTTPClient
 	cfgUserService           *config.UserService
 	cfgRecommendationService *config.RecommendationServiceConfig
@@ -32,7 +32,7 @@ func (r *repositories) FindTicketByID(ctx context.Context, ticketID int64) (enti
 	query := fmt.Sprintf("SELECT * FROM tickets WHERE id = %d", ticketID)
 	var ticket entity.Ticket
 	if err := r.db.GetContext(ctx, &ticket, query); err != nil {
-		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
+		r.log.Ctx(ctx).Error(fmt.Sprintf("Failed to get ticket by id, %v", err))
 		return entity.Ticket{}, err
 	}
 
@@ -44,7 +44,7 @@ func (r *repositories) FindTicketDetailByTicketID(ctx context.Context, ticketID 
 	query := fmt.Sprintf("SELECT * FROM ticket_details WHERE ticket_id = %d", ticketID)
 	var ticketDetails []entity.TicketDetail
 	if err := r.db.SelectContext(ctx, &ticketDetails, query); err != nil {
-		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
+		r.log.Ctx(ctx).Error(fmt.Sprintf("Failed to get ticket by id, %v", err))
 		return ticketDetails, err
 	}
 
@@ -57,7 +57,7 @@ func (r *repositories) FindTicketByRegionName(ctx context.Context, regionName st
 	query := fmt.Sprintf("SELECT * FROM tickets WHERE region = '%s'", regionName)
 	var ticket entity.Ticket
 	if err := r.db.GetContext(ctx, &ticket, query); err != nil {
-		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
+		r.log.Ctx(ctx).Error(fmt.Sprintf("Failed to get ticket by id, %v", err))
 		return ticket, err
 	}
 
@@ -107,7 +107,7 @@ func (r *repositories) FindTicketDetail(ctx context.Context, ticketID int64) (en
 	query := fmt.Sprintf("SELECT * FROM ticket_details WHERE id = %d", ticketID)
 	var ticketDetail entity.TicketDetail
 	if err := r.db.GetContext(ctx, &ticketDetail, query); err != nil {
-		r.log.Error(ctx, "From Repositories: Failed to execute query", err)
+		r.log.Ctx(ctx).Error(fmt.Sprintf("Failed to get ticket by id, %v", err))
 		return entity.TicketDetail{}, err
 	}
 
@@ -132,7 +132,7 @@ type Repositories interface {
 	FindTicketDetailByTicketID(ctx context.Context, ticketID int64) ([]entity.TicketDetail, error)
 }
 
-func New(db *sqlx.DB, log log.Logger, httpClient *circuit.HTTPClient, redisClient *redis.Client, cfgUserService *config.UserService, cfgRecommendationService *config.RecommendationServiceConfig) Repositories {
+func New(db *sqlx.DB, log *otelzap.Logger, httpClient *circuit.HTTPClient, redisClient *redis.Client, cfgUserService *config.UserService, cfgRecommendationService *config.RecommendationServiceConfig) Repositories {
 	return &repositories{
 		db:                       db,
 		log:                      log,
@@ -155,7 +155,7 @@ func (r *repositories) FindTickets(ctx context.Context, page int, pageSize int) 
 	ticketsErrCh := make(chan error)
 	go func() {
 		if err := r.db.SelectContext(ctx, &tickets, query); err != nil {
-			r.log.Error(ctx, "From Repositories: Failed to execute query", err)
+			r.log.Ctx(ctx).Error(fmt.Sprintf("Failed to get ticket by id, %v", err))
 			ticketsErrCh <- err
 		}
 		close(ticketsErrCh)
@@ -166,7 +166,7 @@ func (r *repositories) FindTickets(ctx context.Context, page int, pageSize int) 
 	go func() {
 		var totalCount int
 		if err := r.db.GetContext(ctx, &totalCount, "SELECT COUNT(*) FROM tickets"); err != nil {
-			r.log.Error(ctx, "From Repositories: Failed to get total item count", err)
+			r.log.Ctx(ctx).Error(fmt.Sprintf("Failed to get ticket by id, %v", err))
 			totalCountCh <- 0
 		}
 		totalCountCh <- totalCount
@@ -200,7 +200,7 @@ func (r *repositories) FindTicketDetails(ctx context.Context, page int, pageSize
 	ticketDetailsErrCh := make(chan error)
 	go func() {
 		if err := r.db.SelectContext(ctx, &ticketDetails, query); err != nil {
-			r.log.Error(ctx, "From Repositories: Failed to execute query", err)
+			r.log.Ctx(ctx).Error(fmt.Sprintf("Failed to get ticket by id, %v", err))
 			ticketDetailsErrCh <- err
 		}
 		close(ticketDetailsErrCh)
@@ -211,7 +211,7 @@ func (r *repositories) FindTicketDetails(ctx context.Context, page int, pageSize
 	go func() {
 		var totalCount int
 		if err := r.db.GetContext(ctx, &totalCount, "SELECT COUNT(*) FROM ticket_details"); err != nil {
-			r.log.Error(ctx, "From Repositories: Failed to get total item count", err)
+			r.log.Ctx(ctx).Error(fmt.Sprintf("Failed to get ticket by id, %v", err))
 			totalCountCh <- 0
 		}
 		totalCountCh <- totalCount
@@ -282,7 +282,7 @@ func (r *repositories) ValidateToken(ctx context.Context, token string) (respons
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		r.log.Error(ctx, "Invalid token", resp.StatusCode)
+		r.log.Ctx(ctx).Error(fmt.Sprintf("Failed to validate token, %v", resp.StatusCode))
 		return response.UserServiceValidate{}, errors.BadRequest("Invalid token")
 	}
 
@@ -316,7 +316,7 @@ func (r *repositories) ValidateToken(ctx context.Context, token string) (respons
 	}
 
 	if !dataUser.IsValid {
-		r.log.Error(ctx, "Invalid token", resp.StatusCode)
+		r.log.Ctx(ctx).Error(fmt.Sprintf("Failed to validate token, %v", resp.StatusCode))
 		return response.UserServiceValidate{
 			IsValid: false,
 			UserID:  0,
@@ -347,7 +347,7 @@ func (r *repositories) GetTicketOnline(ctx context.Context, regionName string) (
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		r.log.Error(ctx, "Failed to get ticket online", resp.StatusCode)
+		r.log.Ctx(ctx).Error(fmt.Sprintf("Failed to get ticket online, %v", resp.StatusCode))
 		return response.OnlineTicket{}, errors.BadRequest("Failed to get ticket online")
 	}
 
@@ -392,7 +392,7 @@ func (r *repositories) GetProfile(ctx context.Context, userID int64) (response.P
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		r.log.Error(ctx, "Failed to get profile", resp.StatusCode)
+		r.log.Ctx(ctx).Error(fmt.Sprintf("Failed to get profile, %v", resp.StatusCode))
 		return response.Profile{}, errors.BadRequest("Failed to get profile")
 	}
 

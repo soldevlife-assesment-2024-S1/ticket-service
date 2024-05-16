@@ -10,7 +10,6 @@ import (
 	"ticket-service/internal/module/ticket/mocks"
 	"ticket-service/internal/module/ticket/models/request"
 	"ticket-service/internal/module/ticket/models/response"
-	"ticket-service/internal/pkg/log"
 	log_internal "ticket-service/internal/pkg/log"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -19,6 +18,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/valyala/fasthttp"
 )
 
@@ -26,7 +26,7 @@ var (
 	h             *handler.TicketHandler
 	uc            *mocks.Usecases
 	p             message.Publisher
-	logMock       log.Logger
+	logMock       *otelzap.Logger
 	app           *fiber.App
 	validatorTest *validator.Validate
 )
@@ -50,9 +50,10 @@ func NewMockPublisher() message.Publisher {
 func setup() {
 	uc = new(mocks.Usecases)
 	p = NewMockPublisher()
-	logZap := log_internal.SetupLogger()
-	log_internal.Init(logZap)
-	logMock := log_internal.GetLogger()
+	// logZap := log_internal.SetupLogger()
+	// log_internal.Init(logZap)
+	// logMock := log_internal.GetLogger()
+	logMock = log_internal.Setup()
 	validatorTest = validator.New()
 	h = &handler.TicketHandler{
 		Usecase:   uc,
