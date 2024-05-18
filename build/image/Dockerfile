@@ -3,7 +3,7 @@ WORKDIR /app
 COPY . .
 RUN GOOS=linux go build -o bin/main cmd/main.go
 
-FROM FROM debian:12
+FROM debian:12
 RUN apt-get update && apt-get install -y ca-certificates
 WORKDIR /root/
 COPY --from=builder /app/bin/main /root/
