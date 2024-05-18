@@ -1,10 +1,11 @@
 module ticket-service
 
-go 1.22.0
+go 1.22.3
 
 require (
 	github.com/ThreeDotsLabs/watermill-amqp v1.1.4
 	github.com/gofiber/fiber/v2 v2.52.4
+	github.com/gorules/zen-go v0.1.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lib/pq v1.10.2
@@ -46,9 +47,6 @@ require (
 	github.com/sony/gobreaker v0.5.0 // indirect
 	github.com/streadway/amqp v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/tidwall/gjson v1.17.1 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.2.4 // indirect
 	go.opentelemetry.io/contrib v1.20.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.26.0 // indirect
@@ -73,7 +71,6 @@ require (
 	github.com/goccy/go-json v0.10.2
 	github.com/gofiber/contrib/otelfiber/v2 v2.1.0
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorules/zen-go v0.2.0
 	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

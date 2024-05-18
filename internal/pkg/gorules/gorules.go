@@ -7,7 +7,8 @@ import (
 )
 
 func Init(filePath string) (zen.Decision, error) {
-	engine := zen.NewEngine(zen.EngineConfig{})
+	c := zen.EngineConfig{}
+	engine := zen.NewEngine(c)
 
 	graph, err := os.ReadFile(filePath)
 	if err != nil {
