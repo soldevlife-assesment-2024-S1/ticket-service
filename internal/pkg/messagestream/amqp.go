@@ -8,6 +8,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-amqp/pkg/amqp"
 	"github.com/ThreeDotsLabs/watermill/message"
+	wotel "github.com/voi-oss/watermill-opentelemetry/pkg/opentelemetry"
 )
 
 type ampq struct {
@@ -52,7 +53,7 @@ func (m *ampq) NewPublisher() (message.Publisher, error) {
 		log.Fatal(err)
 	}
 
-	return publisher, err
+	return wotel.NewPublisherDecorator(publisher), err
 }
 
 func ProcessMessages(messages <-chan *message.Message) {

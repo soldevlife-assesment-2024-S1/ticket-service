@@ -12,6 +12,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/ThreeDotsLabs/watermill/message/router/plugin"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	wotel "github.com/voi-oss/watermill-opentelemetry/pkg/opentelemetry"
 )
 
 var (
@@ -53,6 +54,7 @@ func NewRouter(pub message.Publisher, poisonTopic string, handlerTopicName strin
 
 		middleware.CorrelationID,
 		middleware.Recoverer,
+		wotel.Trace(),
 	)
 
 	router.AddNoPublisherHandler(
