@@ -4,6 +4,7 @@ go 1.22.3
 
 require (
 	github.com/ThreeDotsLabs/watermill-amqp v1.1.4
+	github.com/dentech-floss/watermill-opentelemetry-go-extra v0.1.0
 	github.com/gofiber/fiber/v2 v2.52.4
 	github.com/gorules/zen-go v0.1.0
 	github.com/jmoiron/sqlx v1.3.5
@@ -12,6 +13,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/uptrace/opentelemetry-go-extra/otelsql v0.2.4
 	github.com/uptrace/opentelemetry-go-extra/otelsqlx v0.2.4
+	github.com/voi-oss/watermill-opentelemetry v0.1.3
 	go.opentelemetry.io/otel v1.26.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.26.0
 	google.golang.org/grpc v1.64.0
