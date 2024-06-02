@@ -84,6 +84,7 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.53.0
 	github.com/valyala/tcplisten v1.0.0 // indirect
+	github.com/voi-oss/watermill-opentelemetry v0.1.3
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.51.0
 	go.opentelemetry.io/otel/sdk v1.26.0
 	go.uber.org/zap v1.27.0
