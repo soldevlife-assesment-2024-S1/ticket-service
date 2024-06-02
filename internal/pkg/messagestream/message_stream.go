@@ -14,7 +14,6 @@ import (
 	wotelfloss "github.com/dentech-floss/watermill-opentelemetry-go-extra/pkg/opentelemetry"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	wotel "github.com/voi-oss/watermill-opentelemetry/pkg/opentelemetry"
-	wotel "github.com/voi-oss/watermill-opentelemetry/pkg/opentelemetry"
 )
 
 var (
