@@ -173,7 +173,7 @@ func TestIncrementTicketStock(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		// mock data
-		request := request.IncrementTicketStock{
+		request := request.StockTicket{
 			TicketDetailID: 1,
 			TotalTickets:   10,
 		}
@@ -202,7 +202,7 @@ func TestDecrementTicketStock(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		// mock data
-		request := request.DecrementTicketStock{
+		request := request.StockTicket{
 			TicketDetailID: 1,
 			TotalTickets:   10,
 		}
