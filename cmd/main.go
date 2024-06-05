@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 	"ticket-service/config"
 	"ticket-service/internal/module/ticket/handler"
 	"ticket-service/internal/module/ticket/repositories"
@@ -19,12 +17,10 @@ import (
 	"ticket-service/internal/pkg/middleware"
 	"ticket-service/internal/pkg/redis"
 	router "ticket-service/internal/route"
-	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"go.opentelemetry.io/contrib/instrumentation/runtime"
 )
 
 func main() {
@@ -41,19 +37,6 @@ func main() {
 			}
 		}(router)
 	}
-
-	go func() {
-		ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-		defer cancel()
-
-		log.Print("Starting runtime instrumentation:")
-		err := runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		<-ctx.Done()
-	}()
 
 	// start http server
 	http.StartHttpServer(app, cfg.HttpServer.Port)
