@@ -85,6 +85,7 @@ require (
 	github.com/valyala/fasthttp v1.53.0
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.51.0
+	go.opentelemetry.io/contrib/instrumentation/runtime v0.52.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.27.0
 	go.opentelemetry.io/otel/sdk v1.27.0
 	go.uber.org/zap v1.27.0
