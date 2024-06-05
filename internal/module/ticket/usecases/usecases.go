@@ -3,7 +3,6 @@ package usecases
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"ticket-service/internal/module/ticket/models/request"
 	"ticket-service/internal/module/ticket/models/response"
 	"ticket-service/internal/module/ticket/repositories"
@@ -118,7 +117,6 @@ func (u *usecases) DecrementTicketStock(ctx context.Context, ticketDetailID int6
 
 	// check stock
 	if totalTicketPerVenue < 1 {
-		fmt.Println("publish ticket sold out", spec, totalTicketPerVenue)
 		err = u.publish.Publish("update_ticket_sold_out", message.NewMessage(watermill.NewUUID(), payload))
 		if err != nil {
 			return err

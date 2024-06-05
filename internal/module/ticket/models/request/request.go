@@ -14,12 +14,7 @@ type CheckStockTicket struct {
 	TicketDetailID string `form:"ticket_detail_id"`
 }
 
-type DecrementTicketStock struct {
-	TicketDetailID int64 `json:"ticket_detail_id" form:"ticket_detail_id" validate:"required"`
-	TotalTickets   int64 `json:"total_tickets" form:"total_tickets" validate:"required"`
-}
-
-type IncrementTicketStock struct {
+type StockTicket struct {
 	TicketDetailID int64 `json:"ticket_detail_id" form:"ticket_detail_id" validate:"required"`
 	TotalTickets   int64 `json:"total_tickets" form:"total_tickets" validate:"required"`
 }

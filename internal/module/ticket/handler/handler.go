@@ -104,7 +104,7 @@ func (h *TicketHandler) CheckStockTicket(c *fiber.Ctx) error {
 
 func (h *TicketHandler) DecrementTicketStock(msg *message.Message) error {
 	msg.Ack()
-	req := request.DecrementTicketStock{}
+	req := request.StockTicket{}
 
 	if err := json.Unmarshal(msg.Payload, &req); err != nil {
 		h.Log.Ctx(msg.Context()).Error(fmt.Sprintf("Failed to unmarshal data: %v", err))
@@ -133,7 +133,7 @@ func (h *TicketHandler) DecrementTicketStock(msg *message.Message) error {
 
 func (h *TicketHandler) IncrementTicketStock(msg *message.Message) error {
 	msg.Ack()
-	req := request.IncrementTicketStock{}
+	req := request.StockTicket{}
 
 	if err := json.Unmarshal(msg.Payload, &req); err != nil {
 		h.Log.Ctx(msg.Context()).Error(fmt.Sprintf("Failed to unmarshal data: %v", err))
