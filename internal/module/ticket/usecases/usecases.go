@@ -280,9 +280,13 @@ func (u *usecases) ShowTickets(ctx context.Context, page int, pageSize int, user
 						Price:     td.BasePrice,
 					})
 				}
+				stock, err := u.repo.CheckStockTicket(ctx, td.ID)
+				if err != nil {
+					return nil, 0, 0, err
+				}
 				resp = append(resp, response.Ticket{
 					ID:        ticket.ID,
-					Stock:     td.Stock,
+					Stock:     stock,
 					Region:    ticket.Region,
 					Level:     td.Level,
 					EventDate: ticket.EventDate,

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"ticket-service/config"
 	"ticket-service/internal/module/ticket/models/entity"
@@ -25,6 +26,33 @@ type repositories struct {
 	cfgUserService           *config.UserService
 	cfgRecommendationService *config.RecommendationServiceConfig
 	redisClient              *redis.Client
+}
+
+// CheckStockTicket implements Repositories.
+func (r *repositories) CheckStockTicket(ctx context.Context, ticketDetailID int64) (int64, error) {
+	ticketIDString := fmt.Sprintf("%d", ticketDetailID)
+	data, err := r.redisClient.Get(ctx, ticketIDString).Result()
+	if err != nil {
+		entityTicket, err := r.FindTicketDetail(ctx, ticketDetailID)
+		if err != nil {
+			return 0, errors.InternalServerError(strings.Join(
+				[]string{"error get ticket by id", err.Error()}, " ",
+			))
+		}
+
+		// set stock ticket to redis
+
+		ticketIDString = fmt.Sprintf("%d", entityTicket.ID)
+		_, err = r.redisClient.Set(ctx, ticketIDString, data, 0).Result()
+		if err != nil {
+			return 0, errors.InternalServerError("error set stock ticket")
+		}
+	}
+	dataInt, err := strconv.ParseInt(data, 10, 64)
+	if err != nil {
+		return 0, errors.InternalServerError("error parse stock ticket")
+	}
+	return dataInt, nil
 }
 
 // FindTicketByID implements Repositories.
@@ -120,6 +148,7 @@ type Repositories interface {
 	GetTicketOnline(ctx context.Context, regionName string) (response.OnlineTicket, error)
 	GetProfile(ctx context.Context, userID int64) (response.Profile, error)
 	// redis
+	CheckStockTicket(ctx context.Context, ticketDetailID int64) (int64, error)
 	// GetTicketRedis(ctx context.Context) ([]response.Ticket, error)
 	// SetTicketRedis(ctx context.Context, tickets []response.Ticket) error
 	// db
