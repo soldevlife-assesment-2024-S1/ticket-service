@@ -10,7 +10,6 @@ import (
 
 	"go.opentelemetry.io/contrib/instrumentation/host"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -41,7 +40,7 @@ func InitConn(cfg *config.Config) (*grpc.ClientConn, string, error) {
 }
 
 func InitLogOtel(cfg *config.Config, serviceName string) {
-	logExporter, err := otlploghttp.New(context.Background())
+	logExporter, err := otlploghttp.New(context.Background(), otlploghttp.WithEndpoint(cfg.OpenTelemetry.HttpEndpoint))
 	if err != nil {
 		log.Fatalf("failed to create log exporter: %v", err)
 	}
