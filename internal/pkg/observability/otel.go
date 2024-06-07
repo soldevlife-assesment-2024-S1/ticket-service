@@ -1,14 +1,12 @@
 package observability
 
-package observability
-
 import (
 	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
-	"user-service/config"
+	"ticket-service/config"
 
 	"go.opentelemetry.io/contrib/instrumentation/host"
 	"go.opentelemetry.io/otel"
