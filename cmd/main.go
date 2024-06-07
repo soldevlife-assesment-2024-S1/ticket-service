@@ -109,11 +109,14 @@ func initService(cfg *config.Config) (*fiber.App, []*message.Router) {
 		logger.Ctx(ctx).Fatal(fmt.Sprintf("Failed to create gRPC connection to collector: %v", err))
 	}
 
+	// setup log
+	observability.InitLogOtel(conn, serviceName)
+
 	// setup tracer
-	http.InitTracer(conn, serviceName)
+	observability.InitTracer(conn, serviceName)
 
 	// setup metric
-	_, err = http.InitMeterProvider(conn, serviceName)
+	_, err = observability.InitMeterProvider(conn, serviceName)
 	if err != nil {
 		logger.Ctx(ctx).Fatal(fmt.Sprintf("Failed to create meter provider: %v", err))
 	}
