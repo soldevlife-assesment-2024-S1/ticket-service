@@ -15,6 +15,7 @@ import (
 	log_internal "ticket-service/internal/pkg/log"
 	"ticket-service/internal/pkg/messagestream"
 	"ticket-service/internal/pkg/middleware"
+	"ticket-service/internal/pkg/observability"
 	"ticket-service/internal/pkg/redis"
 	router "ticket-service/internal/route"
 
@@ -104,7 +105,7 @@ func initService(cfg *config.Config) (*fiber.App, []*message.Router) {
 	messageRouters = append(messageRouters, incrementTicketStock, decrementTicketStock)
 
 	serverHttp := http.SetupHttpEngine()
-	conn, serviceName, err := http.InitConn(cfg)
+	conn, serviceName, err := observability.InitConn(cfg)
 	if err != nil {
 		logger.Ctx(ctx).Fatal(fmt.Sprintf("Failed to create gRPC connection to collector: %v", err))
 	}
