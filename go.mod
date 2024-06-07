@@ -16,6 +16,7 @@ require (
 	github.com/voi-oss/watermill-opentelemetry v0.1.3
 	go.opentelemetry.io/otel v1.27.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.0.0-20240606163659-6a0fa3c911a0
+	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.3.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.26.0
 	go.opentelemetry.io/otel/sdk/log v0.3.0
 	go.opentelemetry.io/otel/sdk/metric v1.27.0

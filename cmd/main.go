@@ -111,7 +111,7 @@ func initService(cfg *config.Config) (*fiber.App, []*message.Router) {
 	}
 
 	// setup log
-	observability.InitLogOtel(conn, serviceName)
+	observability.InitLogOtel(cfg, serviceName)
 
 	// setup tracer
 	observability.InitTracer(conn, serviceName)
