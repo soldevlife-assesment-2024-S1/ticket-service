@@ -43,11 +43,13 @@ func (r *repositories) CheckStockTicket(ctx context.Context, ticketDetailID int6
 		// set stock ticket to redis
 
 		ticketIDString = fmt.Sprintf("%d", entityTicket.ID)
-		_, err = r.redisClient.Set(ctx, ticketIDString, data, 0).Result()
+		_, err = r.redisClient.Set(ctx, ticketIDString, entityTicket.Stock, 0).Result()
 		if err != nil {
 			return 0, errors.InternalServerError("error set stock ticket")
 		}
+		return entityTicket.Stock, nil
 	}
+	fmt.Println("data", data)
 	dataInt, err := strconv.ParseInt(data, 10, 64)
 	if err != nil {
 		return 0, errors.InternalServerError("error parse stock ticket")
