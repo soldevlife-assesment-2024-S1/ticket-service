@@ -14,6 +14,7 @@ type Config struct {
 	Logger                LoggerConfig
 	UserService           UserService
 	RecommendationService RecommendationServiceConfig
+	BookingServiceConfig  BookingServiceConfig
 	Database              DatabaseConfig
 	MessageStream         MessageStreamConfig
 	ServiceName           string `envconfig:"service_name"`
@@ -78,6 +79,11 @@ type UserService struct {
 type RecommendationServiceConfig struct {
 	Host string `envconfig:"recommendation_service_host"`
 	Port string `envconfig:"recommendation_service_port"`
+}
+
+type BookingServiceConfig struct {
+	Host string `envconfig:"booking_service_host"`
+	Port string `envconfig:"booking_service_port"`
 }
 
 type HttpServerConfig struct {

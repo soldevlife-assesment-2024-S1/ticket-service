@@ -156,20 +156,24 @@ func (u *usecases) IncrementTicketStock(ctx context.Context, ticketDetailID int6
 func (u *usecases) CheckStockTicket(ctx context.Context, ticketDetailID int) (resp response.StockTicket, err error) {
 	// get ticket detail
 	ticketDetailID64 := int64(ticketDetailID)
-	ticketDetail, err := u.repo.FindTicketDetail(ctx, ticketDetailID64)
+	// ticketDetail, err := u.repo.FindTicketDetail(ctx, ticketDetailID64)
+	// if err != nil {
+	// 	return response.StockTicket{}, err
+	// }
+	stock, err := u.repo.CheckStockTicket(ctx, ticketDetailID64)
 	if err != nil {
-		return response.StockTicket{}, err
+		return resp, err
 	}
 
 	// check stock
-	if ticketDetail.Stock == 0 {
+	if stock == 0 {
 		return response.StockTicket{
 			Stock: 0,
 		}, nil
 	}
 
 	resp = response.StockTicket{
-		Stock: ticketDetail.Stock,
+		Stock: stock,
 	}
 
 	return resp, nil

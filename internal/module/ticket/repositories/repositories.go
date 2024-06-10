@@ -25,6 +25,7 @@ type repositories struct {
 	httpClient               *circuit.HTTPClient
 	cfgUserService           *config.UserService
 	cfgRecommendationService *config.RecommendationServiceConfig
+	cfgBookingService        *config.BookingServiceConfig
 	redisClient              *redis.Client
 }
 
@@ -41,6 +42,14 @@ func (r *repositories) CheckStockTicket(ctx context.Context, ticketDetailID int6
 		}
 
 		// set stock ticket to redis
+		pendingTickets, err := r.countPendingTicket(ctx, r.db, entityTicket.TicketID)
+		if err != nil {
+			return 0, errors.InternalServerError(strings.Join(
+				[]string{"error count pending ticket", err.Error()}, " ",
+			))
+		}
+
+		entityTicket.Stock = entityTicket.Stock - pendingTickets
 
 		ticketIDString = fmt.Sprintf("%d", entityTicket.ID)
 		_, err = r.redisClient.Set(ctx, ticketIDString, entityTicket.Stock, 0).Result()
@@ -49,12 +58,43 @@ func (r *repositories) CheckStockTicket(ctx context.Context, ticketDetailID int6
 		}
 		return entityTicket.Stock, nil
 	}
-	fmt.Println("data", data)
 	dataInt, err := strconv.ParseInt(data, 10, 64)
 	if err != nil {
 		return 0, errors.InternalServerError("error parse stock ticket")
 	}
 	return dataInt, nil
+}
+
+func (r *repositories) countPendingTicket(ctx context.Context, db *sqlx.DB, ticketID int64) (int64, error) {
+	url := fmt.Sprintf("http://%s:%s/api/private/payment/pending?ticket_id=%d", r.cfgBookingService.Host, r.cfgBookingService.Port, ticketID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, errors.InternalServerError("error create request")
+	}
+	resp, err := r.httpClient.Do(req)
+	if err != nil {
+		return 0, errors.InternalServerError("error do request")
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return 0, errors.InternalServerError("error get pending ticket")
+	}
+
+	// parse response
+	var respBase response.BaseResponse
+
+	dec := json.NewDecoder(resp.Body)
+
+	if err := dec.Decode(&respBase); err != nil {
+		return 0, errors.InternalServerError("error decode response")
+	}
+
+	respBase.Data = respBase.Data.(map[string]interface{})
+	pendingTickets := int64(respBase.Data.(map[string]interface{})["pending_tickets"].(float64))
+
+	return pendingTickets, nil
 }
 
 // FindTicketByID implements Repositories.
@@ -163,7 +203,7 @@ type Repositories interface {
 	FindTicketDetailByTicketID(ctx context.Context, ticketID int64) ([]entity.TicketDetail, error)
 }
 
-func New(db *sqlx.DB, log *otelzap.Logger, httpClient *circuit.HTTPClient, redisClient *redis.Client, cfgUserService *config.UserService, cfgRecommendationService *config.RecommendationServiceConfig) Repositories {
+func New(db *sqlx.DB, log *otelzap.Logger, httpClient *circuit.HTTPClient, redisClient *redis.Client, cfgUserService *config.UserService, cfgRecommendationService *config.RecommendationServiceConfig, cfgBookingService *config.BookingServiceConfig) Repositories {
 	return &repositories{
 		db:                       db,
 		log:                      log,
@@ -171,6 +211,7 @@ func New(db *sqlx.DB, log *otelzap.Logger, httpClient *circuit.HTTPClient, redis
 		redisClient:              redisClient,
 		cfgUserService:           cfgUserService,
 		cfgRecommendationService: cfgRecommendationService,
+		cfgBookingService:        cfgBookingService,
 	}
 }
 

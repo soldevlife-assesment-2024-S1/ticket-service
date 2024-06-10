@@ -76,7 +76,7 @@ func initService(cfg *config.Config) (*fiber.App, []*message.Router) {
 		logger.Ctx(ctx).Fatal(fmt.Sprintf("Failed to create publisher: %v", err))
 	}
 
-	ticketRepo := repositories.New(db, logger, httpClient, redis, &cfg.UserService, &cfg.RecommendationService)
+	ticketRepo := repositories.New(db, logger, httpClient, redis, &cfg.UserService, &cfg.RecommendationService, &cfg.BookingServiceConfig)
 	ticketUsecase := usecases.New(ticketRepo, publisher, breOnlineTicket)
 	middleware := middleware.Middleware{
 		Repo: ticketRepo,
